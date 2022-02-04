@@ -19,7 +19,8 @@
     "express-validator": "^6.14.0",
     "jsonwebtoken": "^8.5.1",
     "nodemon": "^2.0.15",
-    "pbkdf2": "^3.1.2"
+    "pbkdf2": "^3.1.2",
+    "pg": "^8.7.3"
   },
   "devDependencies": {
     "eslint": "^8.8.0",
