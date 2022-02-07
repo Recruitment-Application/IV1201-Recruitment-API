@@ -1,9 +1,11 @@
 'use strict';
 
+const Validators = require('../util/Validators');
+
 class UserDTO {
   constructor(username, roleID) {
-    validators.isAlphanumericString(username, 'username');
-    validators.isIntegerBetween(roleID, 1, 2, 'roleID');
+    Validators.isAlphanumericString(username, 'username');
+    Validators.isIntegerBetween(roleID, 1, 2, 'roleID');
     this.username = username;
     this.roleID = roleID;
   }
