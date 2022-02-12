@@ -5,8 +5,8 @@ const pbkdf2 = require('pbkdf2');
 const UserDTO = require('../model/UserDTO');
 const SignupDTO = require('../model/SignupDTO');
 const recruitmentRoles = require('../util/rolesEnum');
-const userErrorCode = require('./userErrEnum');
-const JobDTO = require('./JobDTO');
+const userErrorCodes = require('../util/userErrCodes');
+const JobDTO = require('../model/JobDTO');
 
 /**
  * Responsible for the database management.
@@ -65,10 +65,10 @@ class RecruitmentDAO {
 
       let retValue;
       if (results.rowCount <= 0) {
-        retValue = new UserDTO(username, recruitmentRoles.Invalid, userErrorCode.LoginFailure);
+        retValue = new UserDTO(username, recruitmentRoles.Invalid, userErrorCodes.LoginFailure);
       }
       else {
-        retValue = new UserDTO(results.rows[0].username, results.rows[0].role_id, userErrorCode.OK);
+        retValue = new UserDTO(results.rows[0].username, results.rows[0].role_id, userErrorCodes.OK);
       }
 
       await this.client.query('COMMIT');
@@ -127,14 +127,14 @@ class RecruitmentDAO {
       const usernameCheck = await this.client.query(checkUsernameQuery);
 
       if (emailCheck.rowCount > 0) {
-        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCode.ExistentEmail);
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentEmail);
       }
-      else if(usernameCheck > 0) {
-        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCode.ExistentUsername);
+      else if(usernameCheck.rowCount > 0) {
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentUsername);
       }
       else {
         await this.client.query(enterNewUser);
-        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Applicant, userErrorCode.OK);
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Applicant, userErrorCodes.OK);
       }
 
       await this.client.query('COMMIT');

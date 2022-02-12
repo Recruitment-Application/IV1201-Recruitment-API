@@ -21,12 +21,20 @@ app.use(cookieParser());
 
 app.use(express.static(path.join(APP_ROOT_DIR, 'public')));
 
-app.get('/', (req, res) => {
-  return res.send('Welcome to the RecruitmentAPI');
+app.get('/', (req, res, next) => {
+  try
+  {
+    return res.send('Welcome to the RecruitmentAPI');
+  }
+  catch(err){
+    next(err)
+  }
+
 });
 
 const reqHandlerLoader = require('./api');
 reqHandlerLoader.loadHandlers(app);
+reqHandlerLoader.loadErrorHandlers(app);
 
 const server = app.listen(
   process.env.SERVER_PORT,
