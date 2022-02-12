@@ -21,6 +21,7 @@
     "nodemon": "^2.0.15",
     "pbkdf2": "^3.1.2",
     "pg": "^8.7.3",
+    "swedish-personal-identity-number-validator": "^2.1.1",
     "validator": "^13.7.0"
   },
   "devDependencies": {

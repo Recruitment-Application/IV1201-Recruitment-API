@@ -3,6 +3,7 @@
 const { Client } = require('pg');
 const pbkdf2 = require('pbkdf2');
 const UserDTO = require('../model/UserDTO');
+const SignupDTO = require('../model/SignupDTO');
 const recruitmentRoles = require('../util/rolesEnum');
 const userErrorCode = require('./userErrEnum');
 
@@ -74,6 +75,72 @@ class RecruitmentDAO {
     } catch (err) {
       await this.client.query('ROLLBACK');
       console.log("Signin Error\n", err.stack);
+      return null;
+    }
+  }
+
+  /**
+   * Take the new user information and make entries in the database if the user is new.
+   * @param {SignupDTO} signupDTO The needed info about the new user.
+   * @returns {UserDTO | null} On object containing the username and the role of the user
+   *                           The role ID is either 0 for Invalid, 1 for Recruiter, 
+   *                            2 for Applicant. The object is null incase something went wrong.
+   */
+  async signupUser(signupDTO) {
+    const passwordHash = await this._generatePasswordHash(signupDTO.username, signupDTO.password);
+    
+    const checkEmailQuery = {
+      text: `SELECT	*
+            FROM	login_info
+            WHERE	login_info.email = $1`,
+      values: [signupDTO.email],
+    }
+
+    const checkUsernameQuery = {
+      text: `SELECT	*
+            FROM	login_info
+            WHERE	login_info.username = $1`,
+      values: [signupDTO.username],
+    }
+
+
+    const enterNewUser = {
+      text: `WITH new_applicant AS (
+                  INSERT INTO person(first_name, last_name, personal_number,role_id)
+                  VALUES ($1, $2, $3, $4) RETURNING person.id
+            )
+            INSERT INTO login_info(email, password, username, person_id)
+            VALUES ($5, $6, $7,
+                  (SELECT new_applicant.id
+                  FROM new_applicant)
+                ) RETURNING login_info.username, login_info.person_id`,
+      values: [signupDTO.firstName, signupDTO.lastName, signupDTO.personalNumber, 
+              recruitmentRoles.Applicant, signupDTO.email, passwordHash, signupDTO.username],
+    }
+    
+    let retValue;
+    try {
+      await this.client.query('BEGIN');
+
+      const emailCheck = await this.client.query(checkEmailQuery);
+      const usernameCheck = await this.client.query(checkUsernameQuery);
+
+      if (emailCheck.rowCount > 0) {
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCode.ExistentEmail);
+      }
+      else if(usernameCheck > 0) {
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCode.ExistentUsername);
+      }
+      else {
+        await this.client.query(enterNewUser);
+        retValue = new UserDTO(signupDTO.username, recruitmentRoles.Applicant, userErrorCode.OK);
+      }
+
+      await this.client.query('COMMIT');
+      return retValue;
+    } catch (err) {
+      await this.client.query('ROLLBACK');
+      console.log("Signup Error\n", err.stack);
       return null;
     }
   }
