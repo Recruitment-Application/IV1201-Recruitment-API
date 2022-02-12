@@ -20,7 +20,8 @@
     "jsonwebtoken": "^8.5.1",
     "nodemon": "^2.0.15",
     "pbkdf2": "^3.1.2",
-    "pg": "^8.7.3"
+    "pg": "^8.7.3",
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "eslint": "^8.8.0",

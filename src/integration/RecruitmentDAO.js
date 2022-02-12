@@ -1,11 +1,19 @@
 'use strict';
 
-const { Client } = require('pg')
-const pbkdf2 = require('pbkdf2')
+const { Client } = require('pg');
+const pbkdf2 = require('pbkdf2');
 const UserDTO = require('../model/UserDTO');
+const recruitmentRoles = require('../util/rolesEnum');
+const userErrorCode = require('./userErrEnum');
 
+/**
+ * Responsible for the database management.
+ * Calls ranging from executing, updating and inserting.
+ */
 class RecruitmentDAO {
-
+  /**
+   * Create an instance of the class with the credentials needed for the database connection. 
+   */
   constructor() {
     this.client = new Client({
       user: process.env.DB_USER,
@@ -17,6 +25,9 @@ class RecruitmentDAO {
     });
   }
 
+  /**
+   * Establish the connection to the database with the credentials.
+   */
   async establishConnection() {
     try {
       await this.client.connect();
@@ -25,9 +36,18 @@ class RecruitmentDAO {
     }
   }
 
+  /**
+   * Check whether the information of the login are correct.
+   * @param {String} username The username of the profile.
+   * @param {String} password The password related to the user.
+   * @returns {UserDTO | null} On object containing the username and the role of the user
+   *                           The role ID is either 0 for Invalid, 1 for Recruiter, 
+   *                            2 for Applicant. The object is null incase something went wrong.     
+   */
   async signinUser(username, password) {
     const passwordHash = await this._generatePasswordHash(username, password);
-    const query = {
+
+    const checkLoginQuery = {
       text: `SELECT login_info.username, person.role_id
             FROM    login_info
                     INNER JOIN person ON (login_info.person_id = person.id)
@@ -37,16 +57,23 @@ class RecruitmentDAO {
     };
 
     try {
-      const results = await this.client.query(query);
+      await this.client.query('BEGIN');
 
+      const results = await this.client.query(checkLoginQuery);
+
+      let retValue;
       if (results.rowCount <= 0) {
-        return null;
+        retValue = new UserDTO(username, recruitmentRoles.Invalid, userErrorCode.LoginFailure);
       }
       else {
-        return new UserDTO(results.rows[0].username, results.rows[0].role_id);
+        retValue = new UserDTO(results.rows[0].username, results.rows[0].role_id, userErrorCode.OK);
       }
+
+      await this.client.query('COMMIT');
+      return retValue;
     } catch (err) {
-      console.log(err.stack);
+      await this.client.query('ROLLBACK');
+      console.log("Signin Error\n", err.stack);
       return null;
     }
   }
