@@ -16,11 +16,11 @@ class SignupDTO {
    * @param {String} password The password that the new user entered.
    */
   constructor(firstName, lastName, personalNumber, email, username, password) {
-    Validator.isAlphaString(firstName, 'First name');
-    Validator.isAlphaString(lastName, 'Last name');
-    Validator.isPersonalNumberFormat(personalNumber, 'Personal number')
-    Validator.isEmailFormat(email, 'Email');
-    Validator.isAlphanumericString(username, 'Username');
+    Validators.isAlphaString(firstName, 'First name');
+    Validators.isAlphaString(lastName, 'Last name');
+    Validators.isPersonalNumberFormat(personalNumber, 'Personal number')
+    Validators.isEmailFormat(email, 'Email');
+    Validators.isAlphanumericString(username, 'Username');
     this.firstName = firstName;
     this.lastName = lastName;
     this.personalNumber = personalNumber;

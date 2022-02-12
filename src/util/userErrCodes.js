@@ -1,3 +1,3 @@
-const userErrorCode = {"OK":0, "LoginFailure":1, "ExistentEmail":2, "ExistentUsername":3}
+const userErrorCodes = {"OK":0, "LoginFailure":1, "ExistentEmail":2, "ExistentUsername":3}
 
-module.exports = userErrorCode
+module.exports = userErrorCodes
