@@ -6,6 +6,7 @@ const UserDTO = require('../model/UserDTO');
 const SignupDTO = require('../model/SignupDTO');
 const recruitmentRoles = require('../util/rolesEnum');
 const userErrorCode = require('./userErrEnum');
+const JobDTO = require('./JobDTO');
 
 /**
  * Responsible for the database management.
@@ -141,6 +142,50 @@ class RecruitmentDAO {
     } catch (err) {
       await this.client.query('ROLLBACK');
       console.log("Signup Error\n", err.stack);
+      return null;
+    }
+  }
+
+  /**
+   * Get all the jobs and their respective competences.
+   * @returns {JobDTO} An array of an objects that hold the information about the jobs and 
+   *                  competences.
+   */
+  async getJobs() {
+    let jobID = 0;
+
+    const getJobsQuery = {
+      text:`SELECT		job.*
+            FROM		job
+            ORDER BY	job ASC`
+    }
+
+    try {
+      await this.client.query('BEGIN');
+
+      const jobRes = await this.client.query(getJobsQuery);
+
+      let jobs = [];
+
+      for(let i = 0; i < jobRes.rowCount; i++) {
+        jobID = jobRes.rows[i].id;
+        const getJobCompetencesQuery = {
+          text:`SELECT		competence.id, competence.type
+                FROM		competence
+                WHERE   competence.job_id = $1
+                ORDER BY	competence ASC`,
+          values: [jobID]
+        }
+        const competences = await this.client.query(getJobCompetencesQuery);
+
+        jobs[i] = new JobDTO(jobRes.rows[i].id, jobRes.rows[i].name ,competences.rows);
+      }
+
+      await this.client.query('COMMIT');
+      return jobs;
+    } catch (err) {
+      await this.client.query('ROLLBACK');
+      console.log("Jobs Error\n", err.stack);
       return null;
     }
   }
