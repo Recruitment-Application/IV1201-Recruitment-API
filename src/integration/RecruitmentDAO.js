@@ -25,8 +25,9 @@ class RecruitmentDAO {
       password: process.env.DB_PASS,
       port: process.env.DB_PORT,
       connectionTimeoutMillis: 5000,
-	  statement_timeout: 2000,
+	    statement_timeout: 2000,
       query_timeout: 2000,
+      ssl: { rejectUnauthorized: false },
     });
     
     this.logger = new Logger('DatabaseHandler');

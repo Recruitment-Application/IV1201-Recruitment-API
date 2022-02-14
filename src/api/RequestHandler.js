@@ -37,7 +37,7 @@ class RequestHandler {
 
     /**
      * Sends an http response with the specified http status and body.
-     * @param {Request} res The express Response object.
+     * @param {Response} res The express Response object.
      * @param {number} status The status code of the response.
      * @param {any} body The body of the response.
      */
