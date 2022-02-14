@@ -220,7 +220,7 @@ class RecruitmentDAO {
 
   async _runQuery(query) {
     try {
-      const results = this.client.query(query);
+      const results = await this.client.query(query);
       return results;
     } catch(err) {
       const connection = await this._checkConnection();
