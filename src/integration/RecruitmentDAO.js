@@ -54,9 +54,9 @@ class RecruitmentDAO {
    * Check whether the information of the login are correct.
    * @param {String} username The username of the profile.
    * @param {String} password The password related to the user.
-   * @returns {UserDTO | null} On object containing the username and the role of the user
+   * @returns {UserDTO | null} An object containing the username and the role of the user
    *                           The role ID is either 0 for Invalid, 1 for Recruiter, 
-   *                            2 for Applicant. The object is null incase something went wrong.     
+   *                            2 for Applicant. The object is null in case something went wrong.     
    */
   async signinUser(username, password) {
     const passwordHash = await this._generatePasswordHash(username, password);
@@ -220,7 +220,7 @@ class RecruitmentDAO {
 
   async _runQuery(query) {
     try {
-      const results = this.client.query(query);
+      const results = await this.client.query(query);
       return results;
     } catch(err) {
       const connection = await this._checkConnection();
