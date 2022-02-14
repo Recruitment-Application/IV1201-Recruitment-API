@@ -7,6 +7,7 @@ const SignupDTO = require('../model/SignupDTO');
 const recruitmentRoles = require('../util/rolesEnum');
 const userErrorCodes = require('../util/userErrCodes');
 const JobDTO = require('../model/JobDTO');
+const Logger = require('../util/Logger');
 
 /**
  * Responsible for the database management.
@@ -23,18 +24,29 @@ class RecruitmentDAO {
       database: process.env.DB_NAME,
       password: process.env.DB_PASS,
       port: process.env.DB_PORT,
-      ssl: { rejectUnauthorized: false }
+      connectionTimeoutMillis: 5000,
+	  statement_timeout: 2000,
+      query_timeout: 2000,
     });
+    
+    this.logger = new Logger('DatabaseHandler');
   }
 
   /**
    * Establish the connection to the database with the credentials.
+   * Has an event for handling unexpected disconnection to database.
    */
   async establishConnection() {
     try {
+      this.client.on('error', (err) => {
+        this.client._connecting = true;
+        this.client._connected = false;
+        this.client._connectionError = true;
+        this.logger.logException(err);
+      });
       await this.client.connect();
     } catch (err) {
-      console.log(err.stack);
+      this.logger.logException(err);
     }
   }
 
@@ -59,9 +71,15 @@ class RecruitmentDAO {
     };
 
     try {
-      await this.client.query('BEGIN');
+      let connection = await this._checkConnection();
 
-      const results = await this.client.query(checkLoginQuery);
+      if(!connection) {
+        return null;
+      }
+
+      await this._runQuery('BEGIN');
+
+      const results = await this._runQuery(checkLoginQuery);
 
       let retValue;
       if (results.rowCount <= 0) {
@@ -71,11 +89,10 @@ class RecruitmentDAO {
         retValue = new UserDTO(results.rows[0].username, results.rows[0].role_id, userErrorCodes.OK);
       }
 
-      await this.client.query('COMMIT');
+      await this._runQuery('COMMIT');
+
       return retValue;
     } catch (err) {
-      await this.client.query('ROLLBACK');
-      console.log("Signin Error\n", err.stack);
       return null;
     }
   }
@@ -119,12 +136,19 @@ class RecruitmentDAO {
               recruitmentRoles.Applicant, signupDTO.email, passwordHash, signupDTO.username],
     }
     
-    let retValue;
     try {
-      await this.client.query('BEGIN');
+      let connection = await this._checkConnection();
 
-      const emailCheck = await this.client.query(checkEmailQuery);
-      const usernameCheck = await this.client.query(checkUsernameQuery);
+      if(!connection) {
+        return null;
+      }
+
+      await this._runQuery('BEGIN');
+
+      const emailCheck = await this._runQuery(checkEmailQuery);
+      const usernameCheck = await this._runQuery(checkUsernameQuery);
+
+      let retValue;
 
       if (emailCheck.rowCount > 0) {
         retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentEmail);
@@ -133,15 +157,14 @@ class RecruitmentDAO {
         retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentUsername);
       }
       else {
-        await this.client.query(enterNewUser);
+        await this._runQuery(enterNewUser);
         retValue = new UserDTO(signupDTO.username, recruitmentRoles.Applicant, userErrorCodes.OK);
       }
 
-      await this.client.query('COMMIT');
+      await this._runQuery('COMMIT');
+      
       return retValue;
     } catch (err) {
-      await this.client.query('ROLLBACK');
-      console.log("Signup Error\n", err.stack);
       return null;
     }
   }
@@ -161,9 +184,15 @@ class RecruitmentDAO {
     }
 
     try {
-      await this.client.query('BEGIN');
+      let connection = await this._checkConnection();
 
-      const jobRes = await this.client.query(getJobsQuery);
+      if(!connection) {
+        return null;
+      }
+
+      await this._runQuery('BEGIN');
+
+      const jobRes = await this._runQuery(getJobsQuery);
 
       let jobs = [];
 
@@ -176,17 +205,41 @@ class RecruitmentDAO {
                 ORDER BY	competence ASC`,
           values: [jobID]
         }
-        const competences = await this.client.query(getJobCompetencesQuery);
+        const competences = await this._runQuery(getJobCompetencesQuery);
 
         jobs[i] = new JobDTO(jobRes.rows[i].id, jobRes.rows[i].name ,competences.rows);
       }
 
-      await this.client.query('COMMIT');
+      await this._runQuery('COMMIT');
+
       return jobs;
     } catch (err) {
-      await this.client.query('ROLLBACK');
-      console.log("Jobs Error\n", err.stack);
       return null;
+    }
+  }
+
+  async _runQuery(query) {
+    try {
+      const results = this.client.query(query);
+      return results;
+    } catch(err) {
+      const connection = await this._checkConnection();
+
+      if(connection) {
+        await this.client.query('ROLLBACK');
+      }
+      
+      this.logger.logException(err);
+      throw err;
+    }
+  }
+
+  async _checkConnection() {
+    try {
+      return this.client._connected;
+    } catch (err) {
+      this.logger.logException(err);
+      throw err;
     }
   }
 
