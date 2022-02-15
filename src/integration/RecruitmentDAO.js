@@ -8,6 +8,9 @@ const recruitmentRoles = require('../util/rolesEnum');
 const userErrorCodes = require('../util/userErrCodes');
 const JobDTO = require('../model/JobDTO');
 const Logger = require('../util/Logger');
+const ApplicationInfoDTO = require('../model/ApplicationInfoDTO');
+const RegistrationDTO = require('../model/RegistrationDTO');
+const registrationErrEnum = require('../util/registrationErrEnum');
 
 /**
  * Responsible for the database management.
@@ -25,7 +28,7 @@ class RecruitmentDAO {
       password: process.env.DB_PASS,
       port: process.env.DB_PORT,
       connectionTimeoutMillis: 5000,
-	    statement_timeout: 2000,
+	  statement_timeout: 2000,
       query_timeout: 2000,
       ssl: { rejectUnauthorized: false },
     });
@@ -57,7 +60,7 @@ class RecruitmentDAO {
    * @param {String} password The password related to the user.
    * @returns {UserDTO | null} An object containing the username and the role of the user
    *                           The role ID is either 0 for Invalid, 1 for Recruiter, 
-   *                            2 for Applicant. The object is null in case something went wrong.     
+   *                            2 for Applicant. Null in case something went wrong.     
    */
   async signinUser(username, password) {
     const passwordHash = await this._generatePasswordHash(username, password);
@@ -94,6 +97,7 @@ class RecruitmentDAO {
 
       return retValue;
     } catch (err) {
+      this.logger.logException(err);
       return null;
     }
   }
@@ -103,7 +107,7 @@ class RecruitmentDAO {
    * @param {SignupDTO} signupDTO The needed info about the new user.
    * @returns {UserDTO | null} On object containing the username and the role of the user
    *                           The role ID is either 0 for Invalid, 1 for Recruiter, 
-   *                            2 for Applicant. The object is null incase something went wrong.
+   *                            2 for Applicant. Null in case something went wrong.
    */
   async signupUser(signupDTO) {
     const passwordHash = await this._generatePasswordHash(signupDTO.username, signupDTO.password);
@@ -166,14 +170,15 @@ class RecruitmentDAO {
       
       return retValue;
     } catch (err) {
+      this.logger.logException(err);
       return null;
     }
   }
 
   /**
    * Get all the jobs and their respective competences.
-   * @returns {JobDTO} An array of an objects that hold the information about the jobs and 
-   *                  competences.
+   * @returns {JobDTO | null} An array of an objects that hold the information about the jobs and 
+   *                  competences. Null in case something went wrong.
    */
   async getJobs() {
     let jobID = 0;
@@ -215,9 +220,135 @@ class RecruitmentDAO {
 
       return jobs;
     } catch (err) {
+      this.logger.logException(err);
       return null;
     }
   }
+
+  /**
+   * Register a new application for the applicant.
+   * @param {ApplicationInfoDTO} applicationInfoDTO An object that has all the info about the 
+   *                                                new application. Username, competence id,
+   *                                                availability from and to periods.
+   * @returns {RegistrationDTO | null} An object with the id of the new registered application.
+   *                                   any failure of registration will result in an error code
+   *                                   indicating the reason, the error code are enumerated 
+   *                                   in registrationErrEnum.js. Null in case something went wrong.
+   */
+  async registerNewApplication(applicationInfoDTO) {
+    try {
+      let connection = await this._checkConnection();
+
+      if(!connection) {
+        return null;
+      }
+      await this._runQuery('BEGIN');
+      let registrationConfirmation;
+
+      const personID = await this._getPersonID(applicationInfoDTO.username);
+
+      if(personID === -1) {
+        registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidUsername);
+      } else {
+        const checkCompetenceQuery = {
+          text: `SELECT	competence.id AS competence_id
+                FROM	competence
+                WHERE	competence.id = $1`,
+          values: [applicationInfoDTO.competenceID],
+        }
+
+        const checkApplicationQuery = {
+          text: `SELECT	application.id AS application_id
+                FROM	application
+                      INNER JOIN applicant_availability ON 
+                                  (applicant_availability.person_id = application.person_id)
+                WHERE	application.person_id = $1 AND
+                      application.competence_id = $2 AND
+                      applicant_availability.from_date <= DATE($3) AND
+                      applicant_availability.to_date >= DATE($4)`,
+          values: [personID, applicationInfoDTO.competenceID, applicationInfoDTO.dateFrom, 
+                  applicationInfoDTO.dateTo],
+        }
+
+        const checkApplicationRes = await this._runQuery(checkApplicationQuery);
+        const checkCompetenceRes = await this._runQuery(checkCompetenceQuery);
+
+        if(checkCompetenceRes.rowCount <= 0) {
+          registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidCompetence);
+        } else if(checkApplicationRes.rowCount > 0) {
+          registrationConfirmation = new RegistrationDTO(checkApplicationRes.rows[0].application_id, 
+                                                        registrationErrEnum.ExistentApplication);
+        } else {
+          const registerNewApplicationQuery = {
+            text: `WITH new_application AS (
+                    INSERT INTO public.application(years_of_experience, competence_id, person_id)
+                    VALUES ($1, $2, $3) RETURNING application.id
+                  )    INSERT INTO public.application_status(decision, recruiter_id, application_id)
+                    VALUES ('Unhandled', null,
+                      (SELECT    new_application.id
+                      FROM    new_application
+                      )
+                    ) RETURNING application_status.application_id`,
+            values: [applicationInfoDTO.yearsOfExperience, applicationInfoDTO.competenceID, 
+                    personID],
+          }
+          
+          const addApplicationAvailabilityQuery = {
+            text: `INSERT INTO public.applicant_availability(from_date, to_date, person_id)
+                  VALUES ($1, $2, $3)`,
+            values: [applicationInfoDTO.dateFrom, applicationInfoDTO.dateTo, personID],
+          }
+
+          const registerNewApplicationRes = await this._runQuery(registerNewApplicationQuery);
+          await this._runQuery(addApplicationAvailabilityQuery);
+
+          registrationConfirmation = new RegistrationDTO(
+                                            registerNewApplicationRes.rows[0].application_id, 
+                                              registrationErrEnum.OK);
+        }
+      }
+
+      await this._runQuery('COMMIT');
+
+      return registrationConfirmation;
+    } catch (err) {
+      this.logger.logException(err);
+      return null;
+    }
+  }
+
+  async _getPersonID(username) {
+    const getPersonIDQuery = {
+      text: `   SELECT  login_info.person_id
+                FROM    login_info
+                WHERE   username = $1`,
+      values: [username],
+    }
+    
+    try {
+      let connection = await this._checkConnection();
+
+      if(!connection) {
+        return null;
+      }
+
+      await this._runQuery('BEGIN');
+
+      const personIDRes = await this._runQuery(getPersonIDQuery);
+
+      let personID = -1;
+
+      if(personIDRes.rowCount > 0) {
+        personID = personIDRes.rows[0].person_id;
+      }
+
+      await this._runQuery('COMMIT');
+
+      return personID;
+    } catch (err) {
+      throw err;
+    }
+  } 
 
   async _runQuery(query) {
     try {
@@ -230,7 +361,6 @@ class RecruitmentDAO {
         await this.client.query('ROLLBACK');
       }
       
-      this.logger.logException(err);
       throw err;
     }
   }
@@ -239,7 +369,6 @@ class RecruitmentDAO {
     try {
       return this.client._connected;
     } catch (err) {
-      this.logger.logException(err);
       throw err;
     }
   }
