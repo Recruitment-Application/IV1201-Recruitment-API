@@ -175,7 +175,7 @@ class UserApi extends RequestHandler {
                 '/checkSignin',
                 async (req, res, next) => {
                     try {
-                        let userDTO = await Authorization.verifyAuthCookie(req, res);
+                        const userDTO = await Authorization.verifyAuthCookie(req, res);
                         if (userDTO === null) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
