@@ -12,7 +12,7 @@ class UserDTO {
    *                         either a recruiter, an applicant or invalid.
    *                         The roles are given in the rolesEnum.js.
    * @param {Integer} errorCode The code represent the state of the result.
-   *                            0 is for success, 1 for login error, the error 
+   *                            0 is for success, 1 for login error, the errors 
    *                            are enumerated in userErrorEnum.js.
    */
   constructor(username, roleID, errorCode) {

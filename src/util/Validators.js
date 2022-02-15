@@ -114,7 +114,7 @@ class Validators {
     }
 
     /**
-     * CHeck if the value is a number that is whole no decimals, and is bigger than zero (positive number).
+     * Check if the value is a number that is whole no decimals, and is bigger than zero (positive number).
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
@@ -143,7 +143,7 @@ class Validators {
         );
     }
 
-     /**
+    /**
      * Check if the value is a valid competence, competence is an object {id, type} 
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
@@ -163,6 +163,59 @@ class Validators {
         assert(
             result,
             `${varName} type should consist of letters that could be separated by spaces.`
+        );
+    }
+
+    /**
+     * Checks if the Date is formatted correctly, valid date example (YYYY-MM-DD).
+     * The date will be also validated if it is actual. 
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+     static isDataFormat(value, varName) {
+        let result = validator.isDate(value.toString(), { format:'YYYY-MM-DD', strictMode:true, 
+                                                        delimiters:['-'] });
+        assert(
+            result,
+            `${varName} should be formatted correctly, example (YYYY-MM-DD).`
+        );
+    }
+
+    /**
+     * Check if the value is a positive number bigger than zero. 
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+     static isPositiveNumber(value, varName) {
+        let result = false;
+
+        if(value > 0) {
+            result = true;
+        }
+
+        assert(
+            result,
+            `${varName} should be positive number.`
+        );
+    }
+
+    /**
+     * Check if the value is not negative, zero in considered as a positive number.
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+    static isNonNegativeWholeNumber(value, varName) {
+        let result = validator.isInt(value.toString(), { min:0 });
+        
+        assert(
+            result,
+            `${varName} number should be a non-negative whole number.`
         );
     }
 }
