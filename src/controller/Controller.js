@@ -61,9 +61,15 @@ class Controller {
      *                         while contacting the database.
      */
     async signupUser(firstName, lastName, personalNumber, email, username, password) {
-        let signupDTO = new SignupDTO(firstName, lastName, personalNumber, email, username, password);
+        const signupDTO = new SignupDTO(firstName, lastName, personalNumber, email, username, password);
         const userDTO = await this.recruitmentDAO.signupUser(signupDTO);
         return userDTO;
+    }
+
+
+    async getJobs() {
+        const jobDTO = await this.recruitmentDAO.getJobs();
+        return jobDTO;
     }
 
 }

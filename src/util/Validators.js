@@ -112,6 +112,59 @@ class Validators {
 
         return result;
     }
+
+    /**
+     * CHeck if the value is a number that is whole no decimals, and is bigger than zero (positive number).
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+    static isPositiveWholeNumber(value, varName) {
+        let result = validator.isInt(value.toString(), { min:1 });
+        assert(
+            result,
+            `${varName} should be a positive whole number.`
+        );
+    }
+
+    /**
+     * Check if the description is actually a text with only spaces present.
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+    static isDescriptionString(value, varName) {
+        let result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore:' '});
+        assert(
+            result,
+            `${varName} must consist of letters that could be separated by spaces.`
+        );
+    }
+
+     /**
+     * Check if the value is a valid competence, competence is an object {id, type} 
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+    static isCompetence(value, varName) {
+        let result = validator.isInt(value.id.toString(), { min:1 });
+        
+        assert(
+            result,
+            `${varName} ID should be a positive whole number.`
+        );
+        
+        result = validator.isAlpha(value.type.toString(), ['sv-SE'], {ignore:' '});
+        
+        assert(
+            result,
+            `${varName} type should consist of letters that could be separated by spaces.`
+        );
+    }
 }
 
 module.exports = Validators;
