@@ -11,6 +11,9 @@ const Logger = require('../util/Logger');
 const ApplicationInfoDTO = require('../model/ApplicationInfoDTO');
 const RegistrationDTO = require('../model/RegistrationDTO');
 const registrationErrEnum = require('../util/registrationErrEnum');
+const ApplicationFilterDTO = require('../model/ApplicationFilterDTO');
+const ApplicationsListDTO = require('../model/ApplicationsListDTO');
+const filterEmptyParamEnum = require('../util/filterEmptyParamEnum');
 
 /**
  * Responsible for the database management.
@@ -28,7 +31,7 @@ class RecruitmentDAO {
       password: process.env.DB_PASS,
       port: process.env.DB_PORT,
       connectionTimeoutMillis: 5000,
-	  statement_timeout: 2000,
+      statement_timeout: 2000,
       query_timeout: 2000,
       ssl: { rejectUnauthorized: false },
     });
@@ -315,6 +318,144 @@ class RecruitmentDAO {
       this.logger.logException(err);
       return null;
     }
+  }
+
+  /**
+   * Get the applications that are filtered with specific parameters.  
+   * @param {ApplicationFilterDTO} applicationFilterDTO An object holding the necessary information 
+   *                                                    about the filtering parameters that the 
+   *                                                    applications will fullfil.
+   * @returns {ApplicationsListDTO} An object with the filtered applications info.
+   */
+  async getApplicationsList(applicationFilterDTO) {
+    let limit = 25;
+    let offset = await this._getOffset(applicationFilterDTO.page, limit);
+
+    try {
+      const applicationsRes = await this._getApplications(applicationFilterDTO);
+      
+      let retList;
+
+      let applicationsList = [];
+
+      for(let i = 0; i < applicationsRes.rowCount; i++) {
+        applicationsList[i] = {
+          applicationID: applicationsRes.rows[i].application_id,
+          firstName: applicationsRes.rows[i].first_name,
+          lastName: applicationsRes.rows[i].last_name,
+        };
+      }
+
+      retList = [...applicationsList];
+
+      if(applicationFilterDTO.page > filterEmptyParamEnum.Page) {
+        let limitApplicationsList = [];
+      
+        for(let i = 0; i < limit; i++) {
+          let offsetIndex = i + offset;
+
+          if(offsetIndex >= applicationsList.length) {
+            break;
+          }
+
+          limitApplicationsList[i] = applicationsList[offsetIndex];
+        }
+
+        retList = [...limitApplicationsList];
+      }
+      
+      return new ApplicationsListDTO(retList);
+    } catch (err) {
+      this.logger.logException(err);
+      return null;
+    }
+  }
+
+  /**
+   * Get the total number of the application that are filtered with the specific parameters.
+   * @param {ApplicationFilterDTO} applicationFilterDTO An object holding the necessary information 
+   *                                                    about the filtering parameters that the 
+   *                                                    applications will fullfil.
+   * @returns {Integer} The total amount of the filtered applications.
+   */
+  async getApplicationsCount(applicationFilterDTO) {
+    try {
+      const applicationsRes = await this._getApplications(applicationFilterDTO);
+      return applicationsRes.rowCount;
+    } catch (err) {
+      this.logger.logException(err);
+      return null;
+    }
+  }
+
+  async _getApplications(applicationFilterDTO) {
+    let name = applicationFilterDTO.name;
+    let competenceID = applicationFilterDTO.competenceID;
+    let dateFrom = applicationFilterDTO.dateFrom;
+    let dateTo = applicationFilterDTO.dateTo;
+    
+    if(name === filterEmptyParamEnum.Name) {name = '';}
+    if(competenceID === filterEmptyParamEnum.CompetenceID) {competenceID = -1;}
+    if(dateFrom === filterEmptyParamEnum.Date) {dateFrom = '';}
+    if(dateTo === filterEmptyParamEnum.Date) {dateTo = '';}
+
+    const getApplicationsQuery = {
+      text: `SELECT   application.id AS application_id,
+                      person.first_name, person.last_name
+                      
+            FROM      person
+                      INNER JOIN application ON (application.person_id = person.id)
+                      INNER JOIN applicant_availability ON (applicant_availability.person_id = person.id)
+            WHERE     CASE WHEN (($1 = '') IS NOT TRUE) THEN
+                        (person.first_name = $1 OR
+                        person.last_name = $1)
+                      ELSE
+                        TRUE
+                      END
+                      AND
+                      CASE WHEN (($2 = -1) IS NOT TRUE) THEN
+                        application.competence_id = $2
+                      ELSE
+                        TRUE
+                      END
+                      AND
+                      CASE WHEN (($3 = '') IS NOT TRUE) THEN
+                        applicant_availability.from_date >= DATE($3)
+                      ELSE
+                        TRUE
+                      END
+                      AND
+                      CASE WHEN (($4 = '') IS NOT TRUE) THEN
+                        applicant_availability.to_date <= DATE($4)
+                      ELSE
+                        TRUE
+                      END
+                      AND role_id = 2
+            ORDER BY  application.id ASC`,
+      values: [name, competenceID, dateFrom, dateTo],
+    }
+    
+    try {
+      let connection = await this._checkConnection();
+
+      if(!connection) {
+        return null;
+      }
+
+      await this._runQuery('BEGIN');
+      
+      const applicationsRes = await this._runQuery(getApplicationsQuery);
+
+      await this._runQuery('COMMIT');
+    
+      return applicationsRes;
+    } catch (err) {
+      return err;
+    }
+  }
+
+  async _getOffset(page, limit) {
+    return (page - 1) * limit;
   }
 
   async _getPersonID(username) {
