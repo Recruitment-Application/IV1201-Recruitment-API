@@ -218,6 +218,36 @@ class Validators {
             `${varName} number should be a non-negative whole number.`
         );
     }
+
+    /**
+     * Check if the value is an application object {applicationID, firstName, lastName}.
+     * @param {any} value The value to be validated.
+     * @param {String} varName The variable name to be included in the assertion error message
+     *                         in case that the validation fails.
+     * @throws {AssertionError} If validation fails.
+     */
+     static isApplication(value, varName) {
+        let result = validator.isInt(value.applicationID.toString(), { min:1 });
+        
+        assert(
+            result,
+            `${varName} ID should be a positive whole number bigger than zero.`
+        );
+
+        result = validator.isAlpha(value.firstName.toString());
+
+        assert(
+            result,
+            `${varName} first name should consist only of letters.`
+        );
+        
+        result = validator.isAlpha(value.lastName.toString());
+
+        assert(
+            result,
+            `${varName} last name should consist only of letters.`
+        );
+    }
 }
 
 module.exports = Validators;
