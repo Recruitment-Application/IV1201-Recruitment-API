@@ -17,8 +17,8 @@ class ApplicationInfoDTO {
     Validators.isAlphanumericString(username, 'Username');
     Validators.isPositiveWholeNumber(competenceID, 'Competence ID');
     Validators.isNonNegativeNumber(yearsOfExperience, 'Years of Experience');
-    Validators.isDataFormat(dateFrom, 'Date');
-    Validators.isDataFormat(dateTo, 'Date');
+    Validators.isDateFormat(dateFrom, 'Date');
+    Validators.isDateFormat(dateTo, 'Date');
     this.username = username;
     this.competenceID = competenceID;
     this.yearsOfExperience = yearsOfExperience;

@@ -72,7 +72,7 @@ class UserApi extends RequestHandler {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             throw new Error('Expected UserDTO object, received null.');
                         }
-                        else if (signedinUserDTO.errorCode !== 0) {
+                        else if (signedinUserDTO.errorCode !== userErrorCodes.OK) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             this.sendHttpResponse(res, 401, 'User signin failed.');
                             return;
@@ -112,10 +112,9 @@ class UserApi extends RequestHandler {
                 check('firstname').isAlpha(),
                 check('lastname').isAlpha(),
                 check('personalNumber').custom((value) => {
-                    if (!Validators.isPersonalNumber(value)) {
-                        throw new Error('Invalid personal number.');
-                    }
-                    // Indicates the success of custom personal number validator
+                    // This will throw an AssertionError if the validation fails
+                    Validators.isPersonalNumberFormat(value, "personalNumber") 
+                    // Indicates the success of the custom validator check
                     return true;
                 }),
                 check('email').normalizeEmail().isEmail(),
@@ -136,7 +135,7 @@ class UserApi extends RequestHandler {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             throw new Error('Expected UserDTO object, received null.');
                         }
-                        else if (signedupUserDTO.errorCode !== 0) {
+                        else if (signedupUserDTO.errorCode !== userErrorCodes.OK) {
                             if (signedupUserDTO.errorCode === userErrorCodes.ExistentEmail) {
                                 res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                                 this.sendHttpResponse(res, 400, "E-Mail already exists.");
