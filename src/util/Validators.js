@@ -184,22 +184,22 @@ class Validators {
     }
 
     /**
-     * Check if the value is a positive number bigger than zero. 
+     * Check if the value is a non negative number that could be a zero. 
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
-     static isPositiveNumber(value, varName) {
+     static isNonNegativeNumber(value, varName) {
         let result = false;
 
-        if(value > 0) {
+        if(value >= 0) {
             result = true;
         }
 
         assert(
             result,
-            `${varName} should be positive number.`
+            `${varName} should be a non negative number.`
         );
     }
 
