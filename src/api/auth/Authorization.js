@@ -1,6 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const recruitmentRoles = require('../../util/rolesEnum');
 
 /**
  * Handles user authorization, 
@@ -14,7 +15,7 @@ class Authorization {
     }
 
     /**
-     * Verifies the authentication of a user using the JWT token contained in a cookie.
+     * Verifies the authentication of a user using the JWT token contained in the auth cookie.
      * The authentication cookie is also cleared in case of verification failure.
      * 
      * @param {Request} req The express Request object.
@@ -38,7 +39,64 @@ class Authorization {
     }
 
     /**
-     * Sets the authentication cookie containing the signed JSON Web Token
+     * Verifies the authentication and authorization level of a user using
+     * the JWT token contained in the auth cookie.
+     * For the verification to succeed, the user role MUST be 'Applicant'.
+     * 
+     * @param {Request} req The express Request object.
+     * @returns {UserDTO | null} An object containing the username and the role of the user
+     *                           or null in case of verification failure.
+     */
+    static async verifyApplicantAuthorization(req) {
+        const authCookie = req.cookies.recruitmentAuth;
+        if (!authCookie) {
+            return null;
+        }
+        try {
+            const userDTOPayload = jwt.verify(authCookie, process.env.JWT_SECRET);
+            const userDTO = userDTOPayload.userDTO;
+            if (userDTO.roleID === recruitmentRoles.Applicant) {
+                return userDTO;
+            }
+            else {
+                return null;
+            }
+        } catch (err) {
+            return null;
+        }
+    }
+
+    /**
+     * Verifies the authentication and authorization level of a user using
+     * the JWT token contained in the auth cookie.
+     * For the verification to succeed, the user role MUST be 'Recruiter'.
+     * 
+     * @param {Request} req The express Request object.
+     * @returns {UserDTO | null} An object containing the username and the role of the user
+     *                           or null in case of verification failure.
+     */
+    static async verifyRecruiterAuthorization(req) {
+        const authCookie = req.cookies.recruitmentAuth;
+        if (!authCookie) {
+            return null;
+        }
+        try {
+            const userDTOPayload = jwt.verify(authCookie, process.env.JWT_SECRET);
+            const userDTO = userDTOPayload.userDTO;
+            if (userDTO.roleID === recruitmentRoles.Recruiter) {
+                return userDTO;
+            }
+            else {
+                return null;
+            }
+        } catch (err) {
+            return null;
+        }
+    }
+
+
+    /**
+     * Sets the auth cookie containing the signed JSON Web Token
      * in the express response object.
      * 
      * @param {UserDTO} userDTO An object containing the username and the role of the user.

@@ -89,7 +89,6 @@ class Validators {
      */
     static isPersonalNumberFormat(value, varName) {
         let result = this.isPersonalNumber(value);
-        result = personnummer.isValid(value.toString());
         assert(
             result,
             `${varName} should be formatted correctly, example (YYYYMMDD-XXXX).`
@@ -174,7 +173,7 @@ class Validators {
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
-     static isDataFormat(value, varName) {
+     static isDateFormat(value, varName) {
         let result = validator.isDate(value.toString(), { format:'YYYY-MM-DD', strictMode:true, 
                                                         delimiters:['-'] });
         assert(

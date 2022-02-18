@@ -2,6 +2,7 @@
 
 const RecruitmentDAO = require('../integration/RecruitmentDAO');
 const SignupDTO = require('../model/SignupDTO');
+const ApplicationInfoDTO = require('../model/ApplicationInfoDTO')
 
 /**
  * The application's controller.
@@ -57,7 +58,7 @@ class Controller {
      * @param {String} email The new user email address.
      * @param {String} username The username that the new user chose for login.
      * @param {String} password The password that the new user entered.
-     * @returns {UserDTO|null} The signed up user's UserDTO or null in case an error 
+     * @returns {UserDTO | null} The signed up user's UserDTO or null in case of an error 
      *                         while contacting the database.
      */
     async signupUser(firstName, lastName, personalNumber, email, username, password) {
@@ -66,10 +67,38 @@ class Controller {
         return userDTO;
     }
 
-
+    /**
+     * Gets the available jobs and their competences. This method issues a call to the getJobs method in the {RecruitmentDAO},
+     * which either returns a {JobDTO} which contains description of the available jobs and their respective competences 
+     * or null in case of an error while contacting the database.
+     * 
+     * @returns {JobDTO | null} The available jobs {JobDTO} or null in case of an error 
+     *                         while contacting the database.
+     */
     async getJobs() {
         const jobDTO = await this.recruitmentDAO.getJobs();
         return jobDTO;
+    }
+
+    /**
+     * Registers a new job application. This method issues a call to the registerNewApplication method in the {RecruitmentDAO},
+     * which either returns a {RegistrationDTO} that contains information about application registration
+     * or null in case of an error while contacting the database.
+     * 
+     * @param {string} username The username of the applicant.
+     * @param {number} competence_id The competence id.
+     * @param {number} years_of_experience The years of experience in the specified competence.
+     * @param {string} date_from The availability date range start.
+     * @param {string} date_to The availability date range end.
+     * @returns {RegistrationDTO | null} The application registration result {RegistrationDTO} or null 
+     *                                   in case of an error while contacting the database.
+     */
+    async registerApplication(username, competence_id, years_of_experience, date_from, date_to) {
+        const applicationInfoDTO = new ApplicationInfoDTO(username, competence_id, years_of_experience,
+            date_from, date_to);
+        const registrationDTO = await this.recruitmentDAO.registerNewApplication(applicationInfoDTO);
+
+        return registrationDTO;
     }
 
 }
