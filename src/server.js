@@ -1,5 +1,7 @@
 'use strict';
 
+
+
 const path = require('path');
 const APP_ROOT_DIR = path.join(__dirname, '..');
 
@@ -20,6 +22,20 @@ const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
 app.use(express.static(path.join(APP_ROOT_DIR, 'public')));
+
+const cors = require('cors');
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
+app.set('etag', false);
+
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+})
+
 
 app.get('/', (req, res, next) => {
   try
