@@ -330,7 +330,7 @@ class RecruitmentDAO {
    *                                       Null in case something went wrong.
    */
   async getApplicationsList(applicationFilterDTO) {
-    let offset = await this._getOffset(applicationFilterDTO.page, limit);
+    let offset = await this._getOffset(applicationFilterDTO.page, this.PAGELIMIT);
 
     try {
       const applicationsRes = await this._getApplications(applicationFilterDTO);
@@ -397,7 +397,7 @@ class RecruitmentDAO {
    *                                                    applications will fullfil.
    * @returns {Integer | null} the total count of the pages. Null in case something went wrong.
    */
-  async getPagingCount(applicationFilterDTO) {
+  async getPageCount(applicationFilterDTO) {
     try {
       const applicationsRes = await this._getApplications(applicationFilterDTO);
       const pageCount = Math.ceil(applicationsRes.rowCount / this.PAGELIMIT);
