@@ -68,9 +68,9 @@ const reqHandlerloader = new RequestHandlerLoader();
 
 reqHandlerloader.addRequestHandler(new UserApi());
 reqHandlerloader.addRequestHandler(new JobApi());
-reqHandlerloader.addErrorHandler(new ErrorResponseSender());
 reqHandlerloader.addErrorHandler(new UserErrorHandler());
 reqHandlerloader.addErrorHandler(new JobErrorHandler());
+reqHandlerloader.addErrorHandler(new ErrorResponseSender());
 
 
 module.exports = reqHandlerloader;
