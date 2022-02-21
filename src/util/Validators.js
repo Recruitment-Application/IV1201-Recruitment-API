@@ -56,7 +56,7 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isAlphaString(value, varName) {
-        let result = validator.isAlpha(value.toString());
+        let result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore:'\''});
         assert(
             result,
             `${varName} must consist of letters.`
@@ -233,14 +233,14 @@ class Validators {
             `${varName} ID should be a positive whole number bigger than zero.`
         );
 
-        result = validator.isAlpha(value.firstName.toString());
+        result = validator.isAlpha(value.firstName.toString(), ['sv-SE'], {ignore:'\''});
 
         assert(
             result,
             `${varName} first name should consist only of letters.`
         );
         
-        result = validator.isAlpha(value.lastName.toString());
+        result = validator.isAlpha(value.lastName.toString(), ['sv-SE'], {ignore:'\''});
 
         assert(
             result,

@@ -352,7 +352,7 @@ class RecruitmentDAO {
       if(applicationFilterDTO.page > filterEmptyParamEnum.Page) {
         let limitApplicationsList = [];
       
-        for(let i = 0; i < limit; i++) {
+        for(let i = 0; i < this.PAGELIMIT; i++) {
           let offsetIndex = i + offset;
 
           if(offsetIndex >= applicationsList.length) {

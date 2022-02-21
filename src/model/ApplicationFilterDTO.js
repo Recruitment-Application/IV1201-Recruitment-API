@@ -21,8 +21,8 @@ class ApplicationFilterDTO {
   constructor(name, competenceID, dateFrom, dateTo, page) {
     Validators.isAlphaString(name, 'Name');
     Validators.isNonNegativeWholeNumber(competenceID, 'Competence ID');
-    Validators.isDateFormat(dateFrom, 'Date');
-    Validators.isDateFormat(dateTo, 'Date');
+    Validators.isDateFormat(dateFrom, 'Date From');
+    Validators.isDateFormat(dateTo, 'Date To');
     Validators.isNonNegativeWholeNumber(page, 'Page Number');
     this.name = name;
     this.competenceID = competenceID;
