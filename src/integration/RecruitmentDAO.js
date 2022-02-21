@@ -37,6 +37,7 @@ class RecruitmentDAO {
     });
     
     this.logger = new Logger('DatabaseHandler');
+    this.PAGELIMIT = 25;
   }
 
   /**
@@ -325,10 +326,10 @@ class RecruitmentDAO {
    * @param {ApplicationFilterDTO} applicationFilterDTO An object holding the necessary information 
    *                                                    about the filtering parameters that the 
    *                                                    applications will fullfil.
-   * @returns {ApplicationsListDTO} An object with the filtered applications info.
+   * @returns {ApplicationsListDTO | null} An object with the filtered applications info. 
+   *                                       Null in case something went wrong.
    */
   async getApplicationsList(applicationFilterDTO) {
-    let limit = 25;
     let offset = await this._getOffset(applicationFilterDTO.page, limit);
 
     try {
@@ -376,12 +377,31 @@ class RecruitmentDAO {
    * @param {ApplicationFilterDTO} applicationFilterDTO An object holding the necessary information 
    *                                                    about the filtering parameters that the 
    *                                                    applications will fullfil.
-   * @returns {Integer} The total amount of the filtered applications.
+   * @returns {Integer | null} The total amount of the filtered applications.
+   *                           Null in case something went wrong.
    */
   async getApplicationsCount(applicationFilterDTO) {
     try {
       const applicationsRes = await this._getApplications(applicationFilterDTO);
       return applicationsRes.rowCount;
+    } catch (err) {
+      this.logger.logException(err);
+      return null;
+    }
+  }
+
+  /**
+   * Get how many pages are the filtered applications separated into.
+   * @param {ApplicationFilterDTO} applicationFilterDTO An object holding the necessary information 
+   *                                                    about the filtering parameters that the 
+   *                                                    applications will fullfil.
+   * @returns {Integer | null} the total count of the pages. Null in case something went wrong.
+   */
+  async getPagingCount(applicationFilterDTO) {
+    try {
+      const applicationsRes = await this._getApplications(applicationFilterDTO);
+      const pageCount = Math.ceil(applicationsRes.rowCount / this.PAGELIMIT);
+      return pageCount;
     } catch (err) {
       this.logger.logException(err);
       return null;
