@@ -9,14 +9,14 @@ const Logger = require('../util/Logger');
  * Superclass for the request handlers.
  */
 class RequestHandler {
-
     /**
      * Constructs an instance of {RequestHandler}.
      * Also creates the router and logger.
      */
-    constructor(filename) {
+    constructor() {
+        // eslint-disable-next-line new-cap
         this.router = express.Router();
-        this.logger = new Logger("RequestHandler");
+        this.logger = new Logger('RequestHandler');
     }
 
 
@@ -42,7 +42,7 @@ class RequestHandler {
      * @param {any} body The body of the response.
      */
     sendHttpResponse(res, status, body) {
-        Validators.isIntegerBetween(status, 200, 503, "status code");
+        Validators.isIntegerBetween(status, 200, 503, 'status code');
         if (body === undefined) {
             res.status(status).end();
             return;
@@ -53,7 +53,7 @@ class RequestHandler {
         } else {
             jsonStatus = 'error';
         }
-        res.status(status).json({ [jsonStatus]: body });
+        res.status(status).json({[jsonStatus]: body});
     }
 }
 

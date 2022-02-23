@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const recruitmentRoles = require('../../util/rolesEnum');
 
 /**
- * Handles user authorization, 
+ * Handles user authorization,
  */
 class Authorization {
     /**
@@ -17,10 +17,10 @@ class Authorization {
     /**
      * Verifies the authentication of a user using the JWT token contained in the auth cookie.
      * The authentication cookie is also cleared in case of verification failure.
-     * 
+     *
      * @param {Request} req The express Request object.
      * @param {Response} res The express Response object.
-     * @returns {UserDTO | null} An object containing the username and the role of the user
+     * @return {UserDTO | null} An object containing the username and the role of the user
      *                           or null in case of verification failure.
      */
     static async verifyAuthCookie(req, res) {
@@ -42,9 +42,9 @@ class Authorization {
      * Verifies the authentication and authorization level of a user using
      * the JWT token contained in the auth cookie.
      * For the verification to succeed, the user role MUST be 'Applicant'.
-     * 
+     *
      * @param {Request} req The express Request object.
-     * @returns {UserDTO | null} An object containing the username and the role of the user
+     * @return {UserDTO | null} An object containing the username and the role of the user
      *                           or null in case of verification failure.
      */
     static async verifyApplicantAuthorization(req) {
@@ -57,8 +57,7 @@ class Authorization {
             const userDTO = userDTOPayload.userDTO;
             if (userDTO.roleID === recruitmentRoles.Applicant) {
                 return userDTO;
-            }
-            else {
+            } else {
                 return null;
             }
         } catch (err) {
@@ -70,9 +69,9 @@ class Authorization {
      * Verifies the authentication and authorization level of a user using
      * the JWT token contained in the auth cookie.
      * For the verification to succeed, the user role MUST be 'Recruiter'.
-     * 
+     *
      * @param {Request} req The express Request object.
-     * @returns {UserDTO | null} An object containing the username and the role of the user
+     * @return {UserDTO | null} An object containing the username and the role of the user
      *                           or null in case of verification failure.
      */
     static async verifyRecruiterAuthorization(req) {
@@ -85,8 +84,7 @@ class Authorization {
             const userDTO = userDTOPayload.userDTO;
             if (userDTO.roleID === recruitmentRoles.Recruiter) {
                 return userDTO;
-            }
-            else {
+            } else {
                 return null;
             }
         } catch (err) {
@@ -98,16 +96,16 @@ class Authorization {
     /**
      * Sets the auth cookie containing the signed JSON Web Token
      * in the express response object.
-     * 
+     *
      * @param {UserDTO} userDTO An object containing the username and the role of the user.
      * @param {Response} res The express Response object.
      */
     static setAuthCookie(userDTO, res) {
-        const httpOnlyCookie = { httpOnly: true };
-        const cookieAge = { maxAge: 7 * 24 * 60 * 60 * 1000 }; // 1 Week (maxAge is in seconds, but in cookie it's in ms.)
+        const httpOnlyCookie = {httpOnly: true};
+        const cookieAge = {maxAge: 7 * 24 * 60 * 60 * 1000}; // 1 Week (maxAge is in seconds, but in cookie it's in ms.)
         // const cookieDomain = {domain: 'localhost:3000'}; // Not needed atm.
         const jwtToken = jwt.sign(
-            { userDTO },
+            {userDTO},
             process.env.JWT_SECRET,
             {
                 expiresIn: '7 days',
@@ -122,8 +120,8 @@ class Authorization {
 
         const cookieOptions = {
             ...httpOnlyCookie,
-            ...cookieAge
-        };        
+            ...cookieAge,
+        };
         res.cookie(this.AUTH_COOKIE_NAME, jwtToken, cookieOptions);
     }
 }
