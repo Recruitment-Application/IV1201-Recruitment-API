@@ -1,6 +1,6 @@
 'use strict';
 
-const { check, validationResult } = require('express-validator');
+const {check, validationResult} = require('express-validator');
 const RequestHandler = require('./RequestHandler');
 const Authorization = require('./auth/Authorization');
 const registrationErrEnum = require('../util/registrationErrEnum');
@@ -42,7 +42,7 @@ class JobApi extends RequestHandler {
              * Gets the available jobs and their competences.
              * Errors caused by database related issues, are handled by the
              * {JobErrorHandler}.
-             * 
+             *
              * Sends   200: If the user was successfully authenticated, and returns {JobDTO}
              *         401: If authentication verification failed.
              * throws  {Error} In case that the controller returns unexpected data.
@@ -54,10 +54,9 @@ class JobApi extends RequestHandler {
                         const userDTO = await Authorization.verifyAuthCookie(req, res);
 
                         if (userDTO === null) {
-                            this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
-                        }
-                        else {
+                        } else {
                             const jobDTO = await this.controller.getJobs();
                             if (jobDTO === null) {
                                 throw new Error('Expected JobDTO object, received null.');
@@ -67,7 +66,6 @@ class JobApi extends RequestHandler {
                         }
                     } catch (err) {
                         next(err);
-
                     }
                 },
             );
@@ -77,12 +75,12 @@ class JobApi extends RequestHandler {
              * This endpoint is only accessible by applicants.
              * Errors caused by database related issues, are handled by the
              * {JobErrorHandler}.
-             * 
+             *
              * parameter competenceId: The competence id and must be a positive whole number.
              * parameter yearsOfExperience: The years of experience and must be a non-negative number.
              * parameter dateFrom: The availability start date and must follow the format (YYYY-MM-DD).
              * parameter dateTo: The availability end date and must follow the format (YYYY-MM-DD).
-             * 
+             *
              * Sends   200: If the application was successfully registered.
              *         400: If the request body did not contain properly formatted fields.
              *         401: If authentication verification fails or the authorization role
@@ -119,10 +117,9 @@ class JobApi extends RequestHandler {
 
                         const userDTO = await Authorization.verifyApplicantAuthorization(req);
                         if (userDTO === null) {
-                            this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
-                        }
-                        else {
+                        } else {
                             const registrationDTO = await this.controller.registerApplication(userDTO.username, req.body.competenceId, req.body.yearsOfExperience,
                                 req.body.dateFrom, req.body.dateTo);
 
@@ -132,21 +129,17 @@ class JobApi extends RequestHandler {
                             if (registrationDTO.errorCode === registrationErrEnum.OK) {
                                 this.sendHttpResponse(res, 200, registrationDTO);
                                 return;
-                            }
-                            else if (registrationDTO.errorCode === registrationErrEnum.ExistentApplication) {
-                                this.sendHttpResponse(res, 400, "An application with the same information already exists.");
+                            } else if (registrationDTO.errorCode === registrationErrEnum.ExistentApplication) {
+                                this.sendHttpResponse(res, 400, 'An application with the same information already exists.');
                                 return;
-                            }
-                            else if (registrationDTO.errorCode === registrationErrEnum.InvalidUsername) {
-                                this.sendHttpResponse(res, 400, "The username is invalid.");
+                            } else if (registrationDTO.errorCode === registrationErrEnum.InvalidUsername) {
+                                this.sendHttpResponse(res, 400, 'The username is invalid.');
                                 return;
-                            }
-                            else if (registrationDTO.errorCode === registrationErrEnum.InvalidCompetence) {
-                                this.sendHttpResponse(res, 400, "The chosen competence is not a valid competence for this job.");
+                            } else if (registrationDTO.errorCode === registrationErrEnum.InvalidCompetence) {
+                                this.sendHttpResponse(res, 400, 'The chosen competence is not a valid competence for this job.');
                                 return;
                             }
                         }
-
                     } catch (err) {
                         next(err);
                     }
@@ -159,7 +152,7 @@ class JobApi extends RequestHandler {
              * This endpoint is only accessible by recruiters.
              * Errors caused by database related issues, are handled by the
              * {JobErrorHandler}.
-             * 
+             *
              * parameter name: The requested first or last name, can be '' in order to ignore the filter by name option.
              * parameter competenceId: The competence id and must be a positive whole number.
              * parameter dateFrom: The availability start date and must follow the format (YYYY-MM-DD),
@@ -167,7 +160,7 @@ class JobApi extends RequestHandler {
              * parameter dateTo: The availability end date and must follow the format (YYYY-MM-DD),
              *                   can be '' in order to ignore the filter by availability end date option.
              * parameter page: The requested page and must be a non-negative whole number (0 to show all applications).
-             * 
+             *
              * Sends   200: If the applications list has been successfully retrieved.
              *         400: If the request body did not contain properly formatted fields.
              *         401: If authentication verification fails or the authorization role
@@ -187,7 +180,7 @@ class JobApi extends RequestHandler {
                     return true;
                 }),
                 check('competenceId').custom((value) => {
-                    Validators.isNonNegativeWholeNumber(value, 'competenceId');;
+                    Validators.isNonNegativeWholeNumber(value, 'competenceId'); ;
                     return true;
                 }),
                 check('dateFrom').custom((value) => {
@@ -220,10 +213,9 @@ class JobApi extends RequestHandler {
 
                         const userDTO = await Authorization.verifyRecruiterAuthorization(req);
                         if (userDTO === null) {
-                            this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
-                        }
-                        else {
+                        } else {
                             const applicationsListDTO = await this.controller.listApplications(req.body.name, req.body.competenceId,
                                 req.body.dateFrom, req.body.dateTo, req.body.page);
 
@@ -233,7 +225,6 @@ class JobApi extends RequestHandler {
 
                             this.sendHttpResponse(res, 200, applicationsListDTO);
                         }
-
                     } catch (err) {
                         next(err);
                     }
@@ -246,14 +237,14 @@ class JobApi extends RequestHandler {
              * This endpoint is only accessible by recruiters.
              * Errors caused by database related issues, are handled by the
              * {JobErrorHandler}.
-             * 
+             *
              * parameter name: The requested first or last name, can be '' in order to ignore the filter by name option.
              * parameter competenceId: The competence id and must be a positive whole number.
              * parameter dateFrom: The availability start date and must follow the format (YYYY-MM-DD),
              *                      can be '' in order to ignore the filter by availability start date option.
              * parameter dateTo: The availability end date and must follow the format (YYYY-MM-DD),
              *                   can be '' in order to ignore the filter by availability end date option.
-             * 
+             *
              * Sends   200: If the applications total page count has been successfully retrieved.
              *         400: If the request body did not contain properly formatted fields.
              *         401: If authentication verification fails or the authorization role
@@ -273,7 +264,7 @@ class JobApi extends RequestHandler {
                     return true;
                 }),
                 check('competenceId').custom((value) => {
-                    Validators.isNonNegativeWholeNumber(value, 'competenceId');;
+                    Validators.isNonNegativeWholeNumber(value, 'competenceId'); ;
                     return true;
                 }),
                 check('dateFrom').custom((value) => {
@@ -302,31 +293,27 @@ class JobApi extends RequestHandler {
 
                         const userDTO = await Authorization.verifyRecruiterAuthorization(req);
                         if (userDTO === null) {
-                            this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
-                        }
-                        else {
+                        } else {
                             const pageCount = await this.controller.getApplicationsPageCount(req.body.name, req.body.competenceId,
                                 req.body.dateFrom, req.body.dateTo);
-                            const pageCountObject = {"pageCount": pageCount};
+                            const pageCountObject = {'pageCount': pageCount};
                             if (pageCount === null) {
                                 throw new Error('Expected pageCount, received null.');
                             }
 
                             this.sendHttpResponse(res, 200, pageCountObject);
                         }
-
                     } catch (err) {
                         next(err);
                     }
                 },
             );
-
         } catch (err) {
             this.logger.logException(err);
         }
     }
-
 }
 
 module.exports = JobApi;

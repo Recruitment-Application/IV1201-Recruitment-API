@@ -9,36 +9,34 @@ const ErrorHandler = require('./ErrorHandler');
  * errors.
  */
 class ErrorResponseSender extends ErrorHandler {
-
-  /**
+    /**
    * Constructs a new instance of the {ErrorResponseSender}, and passes the log filename
    * to the superclass.
    */
-  constructor() {
-    super("GeneralErrorHandler");
-  }
+    constructor() {
+        super('GeneralErrorHandler');
+    }
 
-  /**
+    /**
    * @return {string} The URL paths handled by the error handler.
    */
-  get path() {
-    return '/';
-  }
+    get path() {
+        return '/';
+    }
 
-  /**
+    /**
    * Registers the error handler
    * @param {Application} app The express application that will host the error handlers.
    */
-  registerHandler(app) {
-
-    app.use(this.path, (err, req, res, next) => {
-      this.logger.logException(err);
-      if (res.headersSent) {
-        return next(err);
-      }
-      res.status(500).send({error: 'The server encountered an unhandled error.'});
-    });
-  }
+    registerHandler(app) {
+        app.use(this.path, (err, req, res, next) => {
+            this.logger.logException(err);
+            if (res.headersSent) {
+                return next(err);
+            }
+            res.status(500).send({error: 'The server encountered an unhandled error.'});
+        });
+    }
 }
 
 module.exports = ErrorResponseSender;

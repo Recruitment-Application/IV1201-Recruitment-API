@@ -1,6 +1,6 @@
 'use strict';
 
-const { createLogger, format, transports } = require('winston');
+const {createLogger, format, transports} = require('winston');
 
 /**
  * Writes error logs to a file.
@@ -11,19 +11,17 @@ class Logger {
      * @param {string} filename The name of the log file to write the errors to.
      */
     constructor(filename) {
-
         this.winstonLogger = createLogger({
             level: 'error',
             format: format.combine(
-                format.errors({ stack: true }),
+                format.errors({stack: true}),
                 format.timestamp(),
-                format.prettyPrint()
+                format.prettyPrint(),
             ),
             transports: [
-                new (transports.File)({ filename: `logs/${filename}.log` })
-            ]
+                new (transports.File)({filename: `logs/${filename}.log`}),
+            ],
         });
-
     }
 
     /**
@@ -31,7 +29,7 @@ class Logger {
      * @param {Exception} exception The error exception to be logged
      */
     logException(exception) {
-        this.winstonLogger.log({ level: 'error', exception });
+        this.winstonLogger.log({level: 'error', exception});
     }
 }
 

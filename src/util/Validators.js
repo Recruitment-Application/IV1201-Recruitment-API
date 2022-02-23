@@ -2,7 +2,7 @@
 
 const assert = require('assert').strict;
 const validator = require('validator');
-const personnummer = require("swedish-personal-identity-number-validator");
+const personnummer = require('swedish-personal-identity-number-validator');
 
 /**
  * A class with validation methods. This class contains validation methods
@@ -10,11 +10,10 @@ const personnummer = require("swedish-personal-identity-number-validator");
  * in the project.
  */
 class Validators {
-
     /**
      * Checks that the provided value is an integer that bigger or equal to lowerLimit,
      * and is smaller or equal to upperLimit.
-     * 
+     *
      * @param {any} value The value to be validated.
      * @param {number} lowerLimit The lower allowed limit, inclusive.
      * @param {number} upperLimit The upper allowed limit, inclusive.
@@ -23,28 +22,27 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isIntegerBetween(value, lowerLimit, upperLimit, varName) {
-        let result = validator.isInt(value.toString(), { min: lowerLimit, max: upperLimit });
+        const result = validator.isInt(value.toString(), {min: lowerLimit, max: upperLimit});
 
         assert(
             result,
-            `${varName} is not an integer between ${lowerLimit} and ${upperLimit}.`
+            `${varName} is not an integer between ${lowerLimit} and ${upperLimit}.`,
         );
-
     }
 
     /**
      * Checks that the specified value is an alphanumeric string.
-     * 
+     *
      * @param {any} value The value to be validated.
      * @param {string} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
     static isAlphanumericString(value, varName) {
-        let result = validator.isAlphanumeric(value.toString());
+        const result = validator.isAlphanumeric(value.toString());
         assert(
             result,
-            `${varName} must consist of letters and numbers only.`
+            `${varName} must consist of letters and numbers only.`,
         );
     }
 
@@ -56,10 +54,10 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isAlphaString(value, varName) {
-        let result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore:'\''});
+        const result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore: '\''});
         assert(
             result,
-            `${varName} must consist of letters.`
+            `${varName} must consist of letters.`,
         );
     }
 
@@ -71,15 +69,15 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isEmailFormat(value, varName) {
-        let result = validator.isEmail(value.toString());
+        const result = validator.isEmail(value.toString());
         assert(
             result,
-            `${varName} should be formatted correctly, example (xx.xx@xx.xx.xx).`
+            `${varName} should be formatted correctly, example (xx.xx@xx.xx.xx).`,
         );
     }
 
     /**
-     * Checks if the personal number for the person is formatted correctly, 
+     * Checks if the personal number for the person is formatted correctly,
      * valid personal number example (YYYYMMDD-XXXX), 13 characters to be specific.
      * The personal number will be also checked if it is valid.
      * @param {any} value The value to be validated.
@@ -88,19 +86,19 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isPersonalNumberFormat(value, varName) {
-        let result = this.isPersonalNumber(value);
+        const result = this.isPersonalNumber(value);
         assert(
             result,
-            `${varName} should be formatted correctly, example (YYYYMMDD-XXXX).`
+            `${varName} should be formatted correctly, example (YYYYMMDD-XXXX).`,
         );
     }
 
     /**
-     * Checks if the personal number for the person is formatted correctly, 
+     * Checks if the personal number for the person is formatted correctly,
      * valid personal number example (YYYYMMDD-XXXX), 13 characters to be specific.
      * The personal number will be also checked if it is valid.
      * @param {any} value The value to be validated.
-     * @returns {boolean} indicates whether the personal number is valid or not.
+     * @return {boolean} indicates whether the personal number is valid or not.
      */
     static isPersonalNumber(value) {
         let result = validator.matches(value.toString(),
@@ -120,10 +118,10 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isPositiveWholeNumber(value, varName) {
-        let result = validator.isInt(value.toString(), { min:1 });
+        const result = validator.isInt(value.toString(), {min: 1});
         assert(
             result,
-            `${varName} should be a positive whole number.`
+            `${varName} should be a positive whole number.`,
         );
     }
 
@@ -135,70 +133,70 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isDescriptionString(value, varName) {
-        let result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore:' '});
+        const result = validator.isAlpha(value.toString(), ['sv-SE'], {ignore: ' '});
         assert(
             result,
-            `${varName} must consist of letters that could be separated by spaces.`
+            `${varName} must consist of letters that could be separated by spaces.`,
         );
     }
 
     /**
-     * Check if the value is a valid competence, competence is an object {id, type} 
+     * Check if the value is a valid competence, competence is an object {id, type}
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
     static isCompetence(value, varName) {
-        let result = validator.isInt(value.id.toString(), { min:1 });
-        
+        let result = validator.isInt(value.id.toString(), {min: 1});
+
         assert(
             result,
-            `${varName} ID should be a positive whole number.`
+            `${varName} ID should be a positive whole number.`,
         );
-        
-        result = validator.isAlpha(value.type.toString(), ['sv-SE'], {ignore:' '});
-        
+
+        result = validator.isAlpha(value.type.toString(), ['sv-SE'], {ignore: ' '});
+
         assert(
             result,
-            `${varName} type should consist of letters that could be separated by spaces.`
+            `${varName} type should consist of letters that could be separated by spaces.`,
         );
     }
 
     /**
      * Checks if the Date is formatted correctly, valid date example (YYYY-MM-DD).
-     * The date will be also validated if it is actual. 
+     * The date will be also validated if it is actual.
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
-     static isDateFormat(value, varName) {
-        let result = validator.isDate(value.toString(), { format:'YYYY-MM-DD', strictMode:true, 
-                                                        delimiters:['-'] });
+    static isDateFormat(value, varName) {
+        const result = validator.isDate(value.toString(), {format: 'YYYY-MM-DD', strictMode: true,
+            delimiters: ['-']});
         assert(
             result,
-            `${varName} should be formatted correctly, example (YYYY-MM-DD).`
+            `${varName} should be formatted correctly, example (YYYY-MM-DD).`,
         );
     }
 
     /**
-     * Check if the value is a non negative number that could be a zero. 
+     * Check if the value is a non negative number that could be a zero.
      * @param {any} value The value to be validated.
      * @param {String} varName The variable name to be included in the assertion error message
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
-     static isNonNegativeNumber(value, varName) {
+    static isNonNegativeNumber(value, varName) {
         let result = false;
 
-        if(value >= 0) {
+        if (value >= 0) {
             result = true;
         }
 
         assert(
             result,
-            `${varName} should be a non negative number.`
+            `${varName} should be a non negative number.`,
         );
     }
 
@@ -210,11 +208,11 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isNonNegativeWholeNumber(value, varName) {
-        let result = validator.isInt(value.toString(), { min:0 });
-        
+        const result = validator.isInt(value.toString(), {min: 0});
+
         assert(
             result,
-            `${varName} number should be a non-negative whole number.`
+            `${varName} number should be a non-negative whole number.`,
         );
     }
 
@@ -225,26 +223,26 @@ class Validators {
      *                         in case that the validation fails.
      * @throws {AssertionError} If validation fails.
      */
-     static isApplication(value, varName) {
-        let result = validator.isInt(value.applicationID.toString(), { min:1 });
-        
+    static isApplication(value, varName) {
+        let result = validator.isInt(value.applicationID.toString(), {min: 1});
+
         assert(
             result,
-            `${varName} ID should be a positive whole number bigger than zero.`
+            `${varName} ID should be a positive whole number bigger than zero.`,
         );
 
-        result = validator.isAlpha(value.firstName.toString(), ['sv-SE'], {ignore:'\''});
+        result = validator.isAlpha(value.firstName.toString(), ['sv-SE'], {ignore: '\''});
 
         assert(
             result,
-            `${varName} first name should consist only of letters.`
+            `${varName} first name should consist only of letters.`,
         );
-        
-        result = validator.isAlpha(value.lastName.toString(), ['sv-SE'], {ignore:'\''});
+
+        result = validator.isAlpha(value.lastName.toString(), ['sv-SE'], {ignore: '\''});
 
         assert(
             result,
-            `${varName} last name should consist only of letters.`
+            `${varName} last name should consist only of letters.`,
         );
     }
 }

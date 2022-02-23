@@ -1,6 +1,6 @@
 'use strict';
 
-const { check, validationResult } = require('express-validator');
+const {check, validationResult} = require('express-validator');
 const RequestHandler = require('./RequestHandler');
 const Validators = require('../util/Validators');
 const userErrorCodes = require('../util/userErrCodes');
@@ -43,7 +43,7 @@ class UserApi extends RequestHandler {
              * The username and password received in the request are validated.
              * Errors caused by database related issues, are handled by the
              * {UserErrorHandler}.
-             * 
+             *
              * parameter username: The username is also used as display name and must be alphanumeric.
              * parameter password: The password parameter is used for the authentication process,
              *                     and must have a minimum length of eight.
@@ -57,7 +57,7 @@ class UserApi extends RequestHandler {
             this.router.post(
                 '/signin',
                 check('username').isAlphanumeric(),
-                check('password').isLength({ min: 8 }),
+                check('password').isLength({min: 8}),
                 async (req, res, next) => {
                     try {
                         const errors = validationResult(req);
@@ -71,20 +71,17 @@ class UserApi extends RequestHandler {
                         if (signedinUserDTO === null) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             throw new Error('Expected UserDTO object, received null.');
-                        }
-                        else if (signedinUserDTO.errorCode !== userErrorCodes.OK) {
+                        } else if (signedinUserDTO.errorCode !== userErrorCodes.OK) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             this.sendHttpResponse(res, 401, 'User signin failed.');
                             return;
-                        }
-                        else {
+                        } else {
                             Authorization.setAuthCookie(signedinUserDTO, res);
                             this.sendHttpResponse(res, 200, signedinUserDTO);
                             return;
                         }
                     } catch (err) {
                         next(err);
-
                     }
                 },
             );
@@ -94,10 +91,10 @@ class UserApi extends RequestHandler {
              * All the fields received in the request are validated.
              * Errors caused by database related issues, are handled by the
              * {UserErrorHandler}.
-             * 
+             *
              * parameter firstname The new user name.
              * parameter lastname The new user surname.
-             * parameter personalNumber The personal number of the new user. 
+             * parameter personalNumber The personal number of the new user.
              *                          It should follow the following format YYYYMMDD-XXXX.
              * parameter email The new user email address.
              * parameter username The username that the new user chose for login.
@@ -113,13 +110,13 @@ class UserApi extends RequestHandler {
                 check('lastname').isAlpha(),
                 check('personalNumber').custom((value) => {
                     // This will throw an AssertionError if the validation fails
-                    Validators.isPersonalNumberFormat(value, "personalNumber") 
+                    Validators.isPersonalNumberFormat(value, 'personalNumber');
                     // Indicates the success of the custom validator check
                     return true;
                 }),
                 check('email').normalizeEmail().isEmail(),
                 check('username').isAlphanumeric(),
-                check('password').isLength({ min: 8 }),
+                check('password').isLength({min: 8}),
                 async (req, res, next) => {
                     try {
                         const errors = validationResult(req);
@@ -134,38 +131,31 @@ class UserApi extends RequestHandler {
                         if (signedupUserDTO === null) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                             throw new Error('Expected UserDTO object, received null.');
-                        }
-                        else if (signedupUserDTO.errorCode !== userErrorCodes.OK) {
+                        } else if (signedupUserDTO.errorCode !== userErrorCodes.OK) {
                             if (signedupUserDTO.errorCode === userErrorCodes.ExistentEmail) {
                                 res.clearCookie(Authorization.AUTH_COOKIE_NAME);
-                                this.sendHttpResponse(res, 400, "E-Mail already exists.");
-                            }
-                            else if (signedupUserDTO.errorCode === userErrorCodes.ExistentUsername) {
+                                this.sendHttpResponse(res, 400, 'E-Mail already exists.');
+                            } else if (signedupUserDTO.errorCode === userErrorCodes.ExistentUsername) {
                                 res.clearCookie(Authorization.AUTH_COOKIE_NAME);
-                                this.sendHttpResponse(res, 400, "Username already exists.");
-                            }
-                            else {
+                                this.sendHttpResponse(res, 400, 'Username already exists.');
+                            } else {
                                 res.clearCookie(Authorization.AUTH_COOKIE_NAME);
-                                this.sendHttpResponse(res, 400, "User signup failed.");
+                                this.sendHttpResponse(res, 400, 'User signup failed.');
                             }
-                        }
-                        else {
+                        } else {
                             Authorization.setAuthCookie(signedupUserDTO, res);
                             this.sendHttpResponse(res, 200, signedupUserDTO);
                             return;
                         }
-                    }
-
-                    catch (err) {
+                    } catch (err) {
                         next(err);
-
                     }
                 },
             );
 
             /**
              * Checks whether a user is signed in or not, by verifying the authentication cookie.
-             * 
+             *
              * Sends   200: If the request contained a valid authentication cookie, the response body
              *              contains the signed in user info.
              *         401: If the authentication cookie was missing or invalid.
@@ -177,24 +167,21 @@ class UserApi extends RequestHandler {
                         const userDTO = await Authorization.verifyAuthCookie(req, res);
                         if (userDTO === null) {
                             res.clearCookie(Authorization.AUTH_COOKIE_NAME);
-                            this.sendHttpResponse(res, 401, "Missing or invalid authorization cookie.");
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
-                        }
-                        else {
+                        } else {
                             this.sendHttpResponse(res, 200, userDTO);
                             return;
                         }
-                    }
-                    catch (err) {
+                    } catch (err) {
                         next(err);
-
                     }
                 },
             );
 
             /**
              * Signs out a user by clearing the authentication cookie.
-             * 
+             *
              * Sends   200: If the authentication cookie was successfully cleared.
              */
             this.router.get(
@@ -202,21 +189,17 @@ class UserApi extends RequestHandler {
                 async (req, res, next) => {
                     try {
                         res.clearCookie(Authorization.AUTH_COOKIE_NAME);
-                        this.sendHttpResponse(res, 200, "Signed out successfully.");
+                        this.sendHttpResponse(res, 200, 'Signed out successfully.');
                         return;
-                    }
-                    catch (err) {
+                    } catch (err) {
                         next(err);
                     }
                 },
             );
-
-
         } catch (err) {
             this.logger.logException(err);
         }
     }
-
 }
 
 module.exports = UserApi;
