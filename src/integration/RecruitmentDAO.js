@@ -11,6 +11,11 @@ const RegistrationDTO = require('../model/RegistrationDTO');
 const registrationErrEnum = require('../util/registrationErrEnum');
 const ApplicationsListDTO = require('../model/ApplicationsListDTO');
 const filterEmptyParamEnum = require('../util/filterEmptyParamEnum');
+const ApplicationDTO = require('../model/ApplicationDTO');
+const applicationErrorCodes = require('../util/applicationErrorCodes');
+const DecisionDTO = require('../model/DecisionDTO');
+const decisionsEnum = require('../util/decisionsEnum');
+const decisionErrorCodes = require('../util/decisionErrorCodes');
 
 /**
  * Responsible for the database management.
@@ -242,12 +247,23 @@ class RecruitmentDAO {
             }
             await this._runQuery('BEGIN');
             let registrationConfirmation;
+            let errorChecker = false;
 
             const personID = await this._getPersonID(applicationInfoDTO.username);
 
             if (personID === -1) {
                 registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidUsername);
+                errorChecker = true;
             } else {
+                const roleID = await this.getRoleID(personID);
+
+                if (roleID === -1 || roleID === recruitmentRoles.Recruiter) {
+                    registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidRole);
+                    errorChecker = true;
+                }
+            }
+
+            if (!errorChecker) {
                 const checkCompetenceQuery = {
                     text: `SELECT    competence.id AS competence_id
                 FROM    competence
@@ -402,6 +418,191 @@ class RecruitmentDAO {
         }
     }
 
+    /**
+   * Get all the information related to the application desired.
+   * @param {Integer} applicationID the id for the specific application.
+   * @return {ApplicationDTO | null} An object holding all the related information for the
+   *                                  desired application. Null in case something went wrong.
+   */
+    async getApplication(applicationID) {
+        const getApplicationQuery = {
+            text: `SELECT   application.id AS application_id, person.first_name, person.last_name,
+                      competence.id AS competence_id, competence.type, application.years_of_experience,
+                      applicant_availability.from_date, applicant_availability.to_date,
+                      application_status.decision
+            FROM      application
+                      INNER JOIN person ON (application.person_id = person.id)
+                      INNER JOIN competence ON (application.competence_id = competence.id)
+                      INNER JOIN applicant_availability ON (applicant_availability.person_id = application.person_id)
+                      INNER JOIN application_status ON (application_status.application_id = application.id)
+            WHERE     application.id = $1
+            ORDER BY  applicant_availability.to_date ASC`,
+            values: [applicationID],
+        };
+
+        try {
+            const connection = await this._checkConnection();
+
+            if (!connection) {
+                return null;
+            }
+
+            let retApplication;
+
+            await this._runQuery('BEGIN');
+
+            const applicationRes = await this._runQuery(getApplicationQuery);
+
+            if (applicationRes.rowCount <= 0) {
+                retApplication = new ApplicationDTO(applicationID, 'DUMMY', 'DUMMY',
+                    {id: 999999, type: 'DUMMY'}, 0,
+                    '1212-12-12', '1212-12-12', 'Unhandled',
+                    applicationErrorCodes.InvalidID);
+            } else {
+                retApplication = new ApplicationDTO(applicationRes.rows[0].application_id,
+                    applicationRes.rows[0].first_name,
+                    applicationRes.rows[0].last_name,
+                    {
+                        id: applicationRes.rows[0].competence_id,
+                        type: applicationRes.rows[0].type,
+                    },
+                    applicationRes.rows[0].years_of_experience,
+                    applicationRes.rows[0].from_date.toISOString().slice(0, 10),
+                    applicationRes.rows[0].to_date.toISOString().slice(0, 10),
+                    applicationRes.rows[0].decision,
+                    applicationErrorCodes.OK);
+            }
+
+            await this._runQuery('COMMIT');
+
+            return retApplication;
+        } catch (err) {
+            this.logger.logException(err);
+            return null;
+        }
+    }
+
+    /**
+   * Register the decision that was taken about an application. Keeping in mind that only recruiters
+   * have the privilege to do that.
+   * @param {String} username The username that is related to the recruiter.
+   * @param {Integer} applicationID The id for the application that is decided upon.
+   * @param {String} decision The decision taken about the application.
+   * @return {DecisionDTO | null} An object holding the decision that was registered to the application.
+   *                              Null in case something went wrong.
+   */
+    async submitApplicationDecision(username, applicationID, decision) {
+        try {
+            const connection = await this._checkConnection();
+
+            if (!connection) {
+                return null;
+            }
+
+            await this._runQuery('BEGIN');
+
+            let retDecision;
+            const personID = await this._getPersonID(username);
+            const applicationChecker = await this._checkApplication(applicationID);
+
+            if (personID === -1) {
+                retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidUsername);
+            } else if (applicationChecker.applicationStatusID === -1) {
+                retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidApplication);
+            } else if (applicationChecker.decision !== decisionsEnum.Unhandled) {
+                retDecision = new DecisionDTO(applicationChecker.decision, decisionErrorCodes.ExistentDecision);
+            } else if (decision !== decisionsEnum.Unhandled &&
+                decision !== decisionsEnum.Accepted &&
+                decision !== decisionsEnum.Rejected) {
+                retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidDecision);
+            } else {
+                const submitDecisionQuery = {
+                    text: `UPDATE public.application_status
+                SET     decision= $1, recruiter_id= $2
+                WHERE   application_id = $3;`,
+                    values: [decision, personID, applicationID],
+                };
+
+                await this._runQuery(submitDecisionQuery);
+
+                retDecision = new DecisionDTO(decision, decisionErrorCodes.OK);
+            }
+
+            await this._runQuery('COMMIT');
+
+            return retDecision;
+        } catch (err) {
+            this.logger.logException(err);
+            return null;
+        }
+    }
+
+    // eslint-disable-next-line require-jsdoc
+    async _getRoleID(personID) {
+        const getRoleIDQuery = {
+            text: `SELECT   person.role_id
+                    FROM    person
+                    WHERE   person.id = $1`,
+            values: [personID],
+        };
+
+        try {
+            let roleID = -1;
+
+            await this._runQuery('BEGIN');
+
+            const roleIDRes = await this._runQuery(getRoleIDQuery);
+
+            if (roleIDRes.rowCount > 0) {
+                roleID = roleIDRes.rows[0].role_id;
+            }
+
+            await this._runQuery('COMMIT');
+
+            return roleID;
+        } catch (err) {
+            throw err;
+        }
+    }
+
+    // eslint-disable-next-line require-jsdoc
+    async _checkApplication(applicationID) {
+        const checkApplicationQuery = {
+            text: `SELECT   application_status.id,
+                            application_status.decision
+                FROM        application_status
+                WHERE       application_status.application_id = $1`,
+            values: [applicationID],
+        };
+
+        try {
+            const connection = await this._checkConnection();
+
+            if (!connection) {
+                return null;
+            }
+
+            let applicationExistent = {applicationStatusID: -1, decision: decisionsEnum.Unhandled};
+
+            await this._runQuery('BEGIN');
+
+            const checkApplicationRes = await this._runQuery(checkApplicationQuery);
+
+            if (checkApplicationRes.rowCount > 0) {
+                applicationExistent = {
+                    applicationStatusID: checkApplicationRes.rows[0].id,
+                    decision: checkApplicationRes.rows[0].decision,
+                };
+            }
+
+            await this._runQuery('COMMIT');
+
+            return applicationExistent;
+        } catch (err) {
+            throw err;
+        }
+    }
+
     // eslint-disable-next-line require-jsdoc
     async _getApplications(applicationFilterDTO) {
         let name = applicationFilterDTO.name;
@@ -473,7 +674,7 @@ class RecruitmentDAO {
 
             return applicationsRes;
         } catch (err) {
-            return err;
+            throw err;
         }
     }
 
@@ -548,6 +749,71 @@ class RecruitmentDAO {
         const derivedKeyBuffer = pbkdf2.pbkdf2Sync(password, userSalt, 25, 32, 'sha512');
         const hexBuffer = Buffer.from(derivedKeyBuffer, 'utf8');
         return hexBuffer.toString('hex');
+    }
+
+    // eslint-disable-next-line require-jsdoc
+    async _signupRecruiter(signupDTO) {
+        const passwordHash = await this._generatePasswordHash(signupDTO.username, signupDTO.password);
+
+        const checkEmailQuery = {
+            text: `SELECT    *
+            FROM    login_info
+            WHERE    login_info.email = $1`,
+            values: [signupDTO.email],
+        };
+
+        const checkUsernameQuery = {
+            text: `SELECT    *
+            FROM    login_info
+            WHERE    login_info.username = $1`,
+            values: [signupDTO.username],
+        };
+
+
+        const enterNewUser = {
+            text: `WITH new_recruiter AS (
+                  INSERT INTO person(first_name, last_name, personal_number,role_id)
+                  VALUES ($1, $2, $3, $4) RETURNING person.id
+            )
+            INSERT INTO login_info(email, password, username, person_id)
+            VALUES ($5, $6, $7,
+                  (SELECT new_recruiter.id
+                  FROM new_recruiter)
+                ) RETURNING login_info.username, login_info.person_id`,
+            values: [signupDTO.firstName, signupDTO.lastName, signupDTO.personalNumber,
+                recruitmentRoles.Recruiter, signupDTO.email, passwordHash, signupDTO.username],
+        };
+
+        try {
+            const connection = await this._checkConnection();
+
+            if (!connection) {
+                return null;
+            }
+
+            await this._runQuery('BEGIN');
+
+            const emailCheck = await this._runQuery(checkEmailQuery);
+            const usernameCheck = await this._runQuery(checkUsernameQuery);
+
+            let retValue;
+
+            if (emailCheck.rowCount > 0) {
+                retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentEmail);
+            } else if (usernameCheck.rowCount > 0) {
+                retValue = new UserDTO(signupDTO.username, recruitmentRoles.Invalid, userErrorCodes.ExistentUsername);
+            } else {
+                await this._runQuery(enterNewUser);
+                retValue = new UserDTO(signupDTO.username, recruitmentRoles.Recruiter, userErrorCodes.OK);
+            }
+
+            await this._runQuery('COMMIT');
+
+            return retValue;
+        } catch (err) {
+            this.logger.logException(err);
+            return null;
+        }
     }
 }
 

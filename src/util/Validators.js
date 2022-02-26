@@ -172,8 +172,10 @@ class Validators {
      * @throws {AssertionError} If validation fails.
      */
     static isDateFormat(value, varName) {
-        const result = validator.isDate(value.toString(), {format: 'YYYY-MM-DD', strictMode: true,
-            delimiters: ['-']});
+        const result = validator.isDate(value.toString(), {
+            format: 'YYYY-MM-DD', strictMode: true,
+            delimiters: ['-'],
+        });
         assert(
             result,
             `${varName} should be formatted correctly, example (YYYY-MM-DD).`,
@@ -243,6 +245,28 @@ class Validators {
         assert(
             result,
             `${varName} last name should consist only of letters.`,
+        );
+    }
+
+    /**
+    * Check if the value is an actual decision, which could be either Unhandled, Accepted or Rejected.
+    * @param {any} value The value to be validated.
+    * @param {String} varName The variable name to be included in the assertion error message
+    *                         in case that the validation fails.
+    * @throws {AssertionError} If validation fails.
+    */
+    static isDecision(value, varName) {
+        let result = false;
+
+        if (value.toString() === 'Unhandled' ||
+            value.toString() === 'Accepted' ||
+            value.toString() === 'Rejected') {
+            result = true;
+        }
+
+        assert(
+            result,
+            `${varName} should one of the following values, Unhandled, Accepted or Rejected.`,
         );
     }
 }
