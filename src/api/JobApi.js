@@ -5,6 +5,7 @@ const RequestHandler = require('./RequestHandler');
 const Authorization = require('./auth/Authorization');
 const registrationErrEnum = require('../util/registrationErrEnum');
 const Validators = require('../util/Validators');
+const applicationErrorCodes = require('../util/applicationErrorCodes');
 
 /**
  * Handles the REST API requests for the job endpoint.
@@ -264,7 +265,7 @@ class JobApi extends RequestHandler {
                     return true;
                 }),
                 check('competenceId').custom((value) => {
-                    Validators.isNonNegativeWholeNumber(value, 'competenceId'); ;
+                    Validators.isNonNegativeWholeNumber(value, 'competenceId');
                     return true;
                 }),
                 check('dateFrom').custom((value) => {
@@ -304,6 +305,58 @@ class JobApi extends RequestHandler {
                             }
 
                             this.sendHttpResponse(res, 200, pageCountObject);
+                        }
+                    } catch (err) {
+                        next(err);
+                    }
+                },
+            );
+
+            /**
+             * Gets detailed information about a specific job application
+             * This endpoint is only accessible by recruiters.
+             * Errors caused by database related issues, are handled by the
+             * {JobErrorHandler}.
+             *
+             * parameter applicationId: The requested application's ID, must be an integer.
+             *
+             * Sends   200: If the applications was successfully retrieved.
+             *         400: If the request body did not contain properly formatted fields
+             *              or contained an invalid or non-existent application ID.
+             *         401: If authentication verification fails or the authorization role
+             *              of the signed in user is not 'Recruiter'.
+             * throws  {Error} In case that the controller returns unexpected data.
+             */
+            this.router.get(
+                '/getApplication',
+                check('applicationId').isInt(),
+                async (req, res, next) => {
+                    try {
+                        const errors = validationResult(req);
+                        if (!errors.isEmpty()) {
+                            this.sendHttpResponse(res, 400, errors);
+                            return;
+                        }
+
+                        const userDTO = await Authorization.verifyRecruiterAuthorization(req);
+
+                        if (userDTO === null) {
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
+                            return;
+                        } else {
+                            const applicationDTO = await this.controller.getApplication(req.body.applicationId);
+                            if (applicationDTO === null) {
+                                throw new Error('Expected ApplicationDTO object, received null.');
+                            }
+                            if (applicationDTO.errorCode === applicationErrorCodes.OK) {
+                                this.sendHttpResponse(res, 200, applicationDTO);
+                                return;
+                            } else if (applicationDTO.errorCode === applicationErrorCodes.InvalidID) {
+                                this.sendHttpResponse(res, 400, 'Invalid or non-existent application ID.');
+                                return;
+                            }
+
+                            return;
                         }
                     } catch (err) {
                         next(err);
