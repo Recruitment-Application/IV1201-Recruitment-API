@@ -147,6 +147,18 @@ class Controller {
         return pageCount;
     }
 
+    /**
+     * Gets detailed information regarding a specific job application.
+     *
+     * @param {number} applicationId The requested application's ID, must be an integer.
+     * @return {ApplicationDTO | null} The detailed application information or null
+     *                                 in case of an error while contacting the database.
+     */
+    async getApplication(applicationId) {
+        const applicationDTO = await this.recruitmentDAO.getApplication(applicationId);
+        return applicationDTO;
+    }
+
     // eslint-disable-next-line require-jsdoc
     async _createApplicationFilterDTO(name, competenceId, dateFrom, dateTo, page) {
         let requestedName = name;

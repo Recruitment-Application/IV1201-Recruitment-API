@@ -255,7 +255,7 @@ class RecruitmentDAO {
                 registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidUsername);
                 errorChecker = true;
             } else {
-                const roleID = await this.getRoleID(personID);
+                const roleID = await this._getRoleID(personID);
 
                 if (roleID === -1 || roleID === recruitmentRoles.Recruiter) {
                     registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidRole);
