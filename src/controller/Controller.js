@@ -150,13 +150,28 @@ class Controller {
     /**
      * Gets detailed information regarding a specific job application.
      *
-     * @param {number} applicationId The requested application's ID, must be an integer.
+     * @param {number} applicationId The requested application's ID, must be a positive integer.
      * @return {ApplicationDTO | null} The detailed application information or null
      *                                 in case of an error while contacting the database.
      */
     async getApplication(applicationId) {
         const applicationDTO = await this.recruitmentDAO.getApplication(applicationId);
         return applicationDTO;
+    }
+
+
+    /**
+     * Submits a decision regarding a specific job application.
+     *
+     * @param {string} username The username of the recruiter taking the decision.
+     * @param {number} applicationId The job application's ID, must be a positive integer.
+     * @param {string} decision The taken decision, must be either 'Unhandled', 'Accepted' or 'Rejected'.
+     * @return {DecisionDTO | null} The registered decision for the application or null
+     *                              in case of an error while contacting the database.
+     */
+    async submitApplicationDecision(username, applicationId, decision) {
+        const decisionDTO = await this.recruitmentDAO.submitApplicationDecision(username, applicationId, decision);
+        return decisionDTO;
     }
 
     // eslint-disable-next-line require-jsdoc

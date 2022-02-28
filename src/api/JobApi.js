@@ -6,6 +6,7 @@ const Authorization = require('./auth/Authorization');
 const registrationErrEnum = require('../util/registrationErrEnum');
 const Validators = require('../util/Validators');
 const applicationErrorCodes = require('../util/applicationErrorCodes');
+const decisionErrorCodes = require('../util/decisionErrorCodes');
 
 /**
  * Handles the REST API requests for the job endpoint.
@@ -163,7 +164,7 @@ class JobApi extends RequestHandler {
              * parameter page: The requested page and must be a non-negative whole number (0 to show all applications).
              *
              * Sends   200: If the applications list has been successfully retrieved.
-             *         400: If the request body did not contain properly formatted fields.
+             *         400: If the request query did not contain properly formatted fields.
              *         401: If authentication verification fails or the authorization role
              *              of the signed in user is not 'Recruiter'.
              * throws  {Error} In case that the controller returns unexpected data.
@@ -217,8 +218,8 @@ class JobApi extends RequestHandler {
                             this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
                         } else {
-                            const applicationsListDTO = await this.controller.listApplications(req.body.name, req.body.competenceId,
-                                req.body.dateFrom, req.body.dateTo, req.body.page);
+                            const applicationsListDTO = await this.controller.listApplications(req.query.name, req.query.competenceId,
+                                req.query.dateFrom, req.query.dateTo, req.query.page);
 
                             if (applicationsListDTO === null) {
                                 throw new Error('Expected ApplicationsListDTO object, received null.');
@@ -247,7 +248,7 @@ class JobApi extends RequestHandler {
              *                   can be '' in order to ignore the filter by availability end date option.
              *
              * Sends   200: If the applications total page count has been successfully retrieved.
-             *         400: If the request body did not contain properly formatted fields.
+             *         400: If the request query did not contain properly formatted fields.
              *         401: If authentication verification fails or the authorization role
              *              of the signed in user is not 'Recruiter'.
              * throws  {Error} In case that the controller returns unexpected data.
@@ -297,8 +298,8 @@ class JobApi extends RequestHandler {
                             this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
                         } else {
-                            const pageCount = await this.controller.getApplicationsPageCount(req.body.name, req.body.competenceId,
-                                req.body.dateFrom, req.body.dateTo);
+                            const pageCount = await this.controller.getApplicationsPageCount(req.query.name, req.query.competenceId,
+                                req.query.dateFrom, req.query.dateTo);
                             const pageCountObject = {'pageCount': pageCount};
                             if (pageCount === null) {
                                 throw new Error('Expected pageCount, received null.');
@@ -321,7 +322,7 @@ class JobApi extends RequestHandler {
              * parameter applicationId: The requested application's ID, must be an integer.
              *
              * Sends   200: If the applications was successfully retrieved.
-             *         400: If the request body did not contain properly formatted fields
+             *         400: If the request query did not contain properly formatted fields
              *              or contained an invalid or non-existent application ID.
              *         401: If authentication verification fails or the authorization role
              *              of the signed in user is not 'Recruiter'.
@@ -344,7 +345,7 @@ class JobApi extends RequestHandler {
                             this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
                         } else {
-                            const applicationDTO = await this.controller.getApplication(req.body.applicationId);
+                            const applicationDTO = await this.controller.getApplication(req.query.applicationId);
                             if (applicationDTO === null) {
                                 throw new Error('Expected ApplicationDTO object, received null.');
                             }
@@ -355,8 +356,74 @@ class JobApi extends RequestHandler {
                                 this.sendHttpResponse(res, 400, 'Invalid or non-existent application ID.');
                                 return;
                             }
-
                             return;
+                        }
+                    } catch (err) {
+                        next(err);
+                    }
+                },
+            );
+
+            /**
+             * Submits a decision for a specific job application
+             * This endpoint is only accessible by recruiters.
+             * Errors caused by database related issues, are handled by the
+             * {JobErrorHandler}.
+             *
+             * parameter applicationId: The job application's ID, must be a positive integer.
+             * parameter decision: The taken decision, must be either 'Unhandled', 'Accepted' or 'Rejected'.
+             *
+             * Sends   200: If the decision was successfully registered.
+             *         400: If the request body did not contain properly formatted fields
+             *              or contained an invalid or non-existent application ID,
+             *              an invalid decision or an application were the decision is already taken.
+             *         401: If authentication verification fails or the authorization role
+             *              of the signed in user is not 'Recruiter'.
+             * throws  {Error} In case that the controller returns unexpected data.
+             */
+            this.router.put(
+                '/submitDecision',
+                check('applicationId').isInt(),
+                check('decision').custom((value) => {
+                    // This will throw an AssertionError if the validation fails
+                    Validators.isDecision(value, 'decision');
+                    return true;
+                }),
+                async (req, res, next) => {
+                    try {
+                        const errors = validationResult(req);
+                        if (!errors.isEmpty()) {
+                            this.sendHttpResponse(res, 400, errors);
+                            return;
+                        }
+
+                        const userDTO = await Authorization.verifyRecruiterAuthorization(req);
+                        if (userDTO === null) {
+                            this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
+                            return;
+                        } else {
+                            const decisionDTO = await this.controller.submitApplicationDecision(userDTO.username, req.body.applicationId,
+                                req.body.decision);
+
+                            if (decisionDTO === null) {
+                                throw new Error('Expected DecisionDTO object, received null.');
+                            }
+                            if (decisionDTO.errorCode === decisionErrorCodes.OK) {
+                                this.sendHttpResponse(res, 200, decisionDTO);
+                                return;
+                            } else if (decisionDTO.errorCode === decisionErrorCodes.ExistentDecision) {
+                                this.sendHttpResponse(res, 400, 'A decision has been already taken for this application.');
+                                return;
+                            } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidUsername) {
+                                this.sendHttpResponse(res, 400, 'The username is invalid.');
+                                return;
+                            } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidApplication) {
+                                this.sendHttpResponse(res, 400, 'Invalid or non-existent application ID.');
+                                return;
+                            } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidDecision) {
+                                this.sendHttpResponse(res, 400, 'Invalid decision.');
+                                return;
+                            }
                         }
                     } catch (err) {
                         next(err);
