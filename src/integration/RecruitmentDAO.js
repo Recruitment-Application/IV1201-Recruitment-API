@@ -1,6 +1,6 @@
 'use strict';
 
-const {Client} = require('pg');
+const {Client, types} = require('pg');
 const pbkdf2 = require('pbkdf2');
 const UserDTO = require('../model/UserDTO');
 const recruitmentRoles = require('../util/rolesEnum');
@@ -26,6 +26,11 @@ class RecruitmentDAO {
    * Create an instance of the class with the credentials needed for the database connection.
    */
     constructor() {
+        // Disable automatic date parsing by node-postgres
+        const dateObjectId = 1082;
+        const defaultRawParser = (value) => value;
+        types.setTypeParser(dateObjectId, defaultRawParser);
+
         this.client = new Client({
             user: process.env.DB_USER,
             host: process.env.DB_HOST,
@@ -436,7 +441,7 @@ class RecruitmentDAO {
                       INNER JOIN applicant_availability ON (applicant_availability.person_id = application.person_id)
                       INNER JOIN application_status ON (application_status.application_id = application.id)
             WHERE     application.id = $1
-            ORDER BY  applicant_availability.to_date ASC`,
+            ORDER BY  applicant_availability.to_date DESC`,
             values: [applicationID],
         };
 
@@ -467,8 +472,8 @@ class RecruitmentDAO {
                         type: applicationRes.rows[0].type,
                     },
                     applicationRes.rows[0].years_of_experience,
-                    applicationRes.rows[0].from_date.toISOString().slice(0, 10),
-                    applicationRes.rows[0].to_date.toISOString().slice(0, 10),
+                    applicationRes.rows[0].from_date,
+                    applicationRes.rows[0].to_date,
                     applicationRes.rows[0].decision,
                     applicationErrorCodes.OK);
             }
