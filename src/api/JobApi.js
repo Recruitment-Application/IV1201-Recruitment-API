@@ -427,7 +427,7 @@ class JobApi extends RequestHandler {
                                 this.sendHttpResponse(res, 400, 'Invalid decision.');
                                 return;
                             } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidRole) {
-                                this.sendHttpResponse(res, 400, 'The signed in user is not authorized to make a decision job applications.');
+                                this.sendHttpResponse(res, 400, 'The signed in user is not authorized to make a decision on job applications.');
                                 return;
                             }
                         }
