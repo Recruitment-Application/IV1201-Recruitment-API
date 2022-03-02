@@ -250,6 +250,7 @@ class RecruitmentDAO {
             if (!connection) {
                 return null;
             }
+
             await this._runQuery('BEGIN');
             let registrationConfirmation;
             let errorChecker = false;
@@ -268,63 +269,69 @@ class RecruitmentDAO {
                 }
             }
 
+            const checkCompetenceQuery = {
+                text: `SELECT    competence.id AS competence_id
+            FROM    competence
+            WHERE    competence.id = $1`,
+                values: [applicationInfoDTO.competenceID],
+            };
+
+            const checkApplicationQuery = {
+                text: `SELECT    application.id AS application_id
+            FROM    application
+                  INNER JOIN applicant_availability ON 
+                              (applicant_availability.application_id = application.id)
+            WHERE    application.person_id = $1 AND
+                  application.competence_id = $2 AND
+                  applicant_availability.from_date <= DATE($3) AND
+                  applicant_availability.to_date >= DATE($4)`,
+                values: [personID, applicationInfoDTO.competenceID, applicationInfoDTO.dateFrom,
+                    applicationInfoDTO.dateTo],
+            };
+
+            const checkApplicationRes = await this._runQuery(checkApplicationQuery);
+            const checkCompetenceRes = await this._runQuery(checkCompetenceQuery);
+
+            if (checkCompetenceRes.rowCount <= 0) {
+                registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidCompetence);
+                errorChecker = true;
+            }
+
+            if (checkApplicationRes.rowCount > 0) {
+                registrationConfirmation = new RegistrationDTO(checkApplicationRes.rows[0].application_id,
+                    registrationErrEnum.ExistentApplication);
+                errorChecker = true;
+            }
+
             if (!errorChecker) {
-                const checkCompetenceQuery = {
-                    text: `SELECT    competence.id AS competence_id
-                FROM    competence
-                WHERE    competence.id = $1`,
-                    values: [applicationInfoDTO.competenceID],
+                const newApplicationQuery = {
+                    text: `INSERT INTO public.application(years_of_experience, competence_id, person_id)
+                            VALUES ($1, $2, $3) RETURNING application.id AS application_id`,
+                    values: [applicationInfoDTO.yearsOfExperience, applicationInfoDTO.competenceID,
+                        personID],
                 };
 
-                const checkApplicationQuery = {
-                    text: `SELECT    application.id AS application_id
-                FROM    application
-                      INNER JOIN applicant_availability ON 
-                                  (applicant_availability.person_id = application.person_id)
-                WHERE    application.person_id = $1 AND
-                      application.competence_id = $2 AND
-                      applicant_availability.from_date <= DATE($3) AND
-                      applicant_availability.to_date >= DATE($4)`,
-                    values: [personID, applicationInfoDTO.competenceID, applicationInfoDTO.dateFrom,
-                        applicationInfoDTO.dateTo],
+                const newApplicationRes = await this._runQuery(newApplicationQuery);
+
+                const registeredApplicationID = newApplicationRes.rows[0].application_id;
+
+                const newApplicationStatusQuery = {
+                    text: `INSERT INTO public.application_status(decision, recruiter_id, application_id)
+                            VALUES ('Unhandled', null, $1)`,
+                    values: [registeredApplicationID],
                 };
 
-                const checkApplicationRes = await this._runQuery(checkApplicationQuery);
-                const checkCompetenceRes = await this._runQuery(checkCompetenceQuery);
+                const newApplicantAvailabilityQuery = {
+                    text: `INSERT INTO public.applicant_availability(from_date, to_date, person_id, application_id)
+                            VALUES ($1, $2, $3, $4)`,
+                    values: [applicationInfoDTO.dateFrom, applicationInfoDTO.dateTo,
+                        personID, registeredApplicationID],
+                };
 
-                if (checkCompetenceRes.rowCount <= 0) {
-                    registrationConfirmation = new RegistrationDTO(0, registrationErrEnum.InvalidCompetence);
-                } else if (checkApplicationRes.rowCount > 0) {
-                    registrationConfirmation = new RegistrationDTO(checkApplicationRes.rows[0].application_id,
-                        registrationErrEnum.ExistentApplication);
-                } else {
-                    const registerNewApplicationQuery = {
-                        text: `WITH new_application AS (
-                    INSERT INTO public.application(years_of_experience, competence_id, person_id)
-                    VALUES ($1, $2, $3) RETURNING application.id
-                  )    INSERT INTO public.application_status(decision, recruiter_id, application_id)
-                    VALUES ('Unhandled', null,
-                      (SELECT    new_application.id
-                      FROM    new_application
-                      )
-                    ) RETURNING application_status.application_id`,
-                        values: [applicationInfoDTO.yearsOfExperience, applicationInfoDTO.competenceID,
-                            personID],
-                    };
+                await this._runQuery(newApplicationStatusQuery);
+                await this._runQuery(newApplicantAvailabilityQuery);
 
-                    const addApplicationAvailabilityQuery = {
-                        text: `INSERT INTO public.applicant_availability(from_date, to_date, person_id)
-                  VALUES ($1, $2, $3)`,
-                        values: [applicationInfoDTO.dateFrom, applicationInfoDTO.dateTo, personID],
-                    };
-
-                    const registerNewApplicationRes = await this._runQuery(registerNewApplicationQuery);
-                    await this._runQuery(addApplicationAvailabilityQuery);
-
-                    registrationConfirmation = new RegistrationDTO(
-                        registerNewApplicationRes.rows[0].application_id,
-                        registrationErrEnum.OK);
-                }
+                registrationConfirmation = new RegistrationDTO(registeredApplicationID, registrationErrEnum.OK);
             }
 
             await this._runQuery('COMMIT');
@@ -438,7 +445,7 @@ class RecruitmentDAO {
             FROM      application
                       INNER JOIN person ON (application.person_id = person.id)
                       INNER JOIN competence ON (application.competence_id = competence.id)
-                      INNER JOIN applicant_availability ON (applicant_availability.person_id = application.person_id)
+                      INNER JOIN applicant_availability ON (applicant_availability.application_id = application.id)
                       INNER JOIN application_status ON (application_status.application_id = application.id)
             WHERE     application.id = $1
             ORDER BY  applicant_availability.to_date DESC`,
@@ -512,6 +519,12 @@ class RecruitmentDAO {
 
             if (personID === -1) {
                 retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidUsername);
+
+                const roleID = await this._getRoleID(personID);
+
+                if (roleID === -1 || roleID === recruitmentRoles.Applicant) {
+                    retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidRole);
+                }
             } else if (applicationChecker.applicationStatusID === -1) {
                 retDecision = new DecisionDTO(decisionsEnum.Unhandled, decisionErrorCodes.InvalidApplication);
             } else if (applicationChecker.decision !== decisionsEnum.Unhandled) {
@@ -632,9 +645,9 @@ class RecruitmentDAO {
             text: `SELECT   application.id AS application_id,
                       person.first_name, person.last_name
                       
-            FROM      person
-                      INNER JOIN application ON (application.person_id = person.id)
-                      INNER JOIN applicant_availability ON (applicant_availability.person_id = person.id)
+            FROM      application
+                      INNER JOIN person ON (person.id = application.person_id)
+                      INNER JOIN applicant_availability ON (applicant_availability.application_id = application.id)
             WHERE     CASE WHEN (($1 = '') IS NOT TRUE) THEN
                         (person.first_name = $1 OR
                         person.last_name = $1)
@@ -659,9 +672,9 @@ class RecruitmentDAO {
                       ELSE
                         TRUE
                       END
-                      AND role_id = 2
+                      AND role_id = $5
             ORDER BY  application.id ASC`,
-            values: [name, competenceID, dateFrom, dateTo],
+            values: [name, competenceID, dateFrom, dateTo, recruitmentRoles.Applicant],
         };
 
         try {
