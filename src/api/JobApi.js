@@ -140,6 +140,9 @@ class JobApi extends RequestHandler {
                             } else if (registrationDTO.errorCode === registrationErrEnum.InvalidCompetence) {
                                 this.sendHttpResponse(res, 400, 'The chosen competence is not a valid competence for this job.');
                                 return;
+                            } else if (registrationDTO.errorCode === registrationErrEnum.InvalidRole) {
+                                this.sendHttpResponse(res, 400, 'The signed in user is not authorized to register a job application.');
+                                return;
                             }
                         }
                     } catch (err) {
@@ -422,6 +425,9 @@ class JobApi extends RequestHandler {
                                 return;
                             } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidDecision) {
                                 this.sendHttpResponse(res, 400, 'Invalid decision.');
+                                return;
+                            } else if (decisionDTO.errorCode === decisionErrorCodes.InvalidRole) {
+                                this.sendHttpResponse(res, 400, 'The signed in user is not authorized to make a decision job applications.');
                                 return;
                             }
                         }
