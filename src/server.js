@@ -48,9 +48,9 @@ const reqHandlerLoader = require('./api');
 reqHandlerLoader.loadHandlers(app);
 reqHandlerLoader.loadErrorHandlers(app);
 
+// process.env.PORT is set by Heroku, process.env.SERVER_PORT is a fallback
 const server = app.listen(
-    process.env.SERVER_PORT,
-    process.env.SERVER_HOST,
+    process.env.PORT || process.env.SERVER_PORT,
     () => {
         console.log(
             `Server is up at ${server.address().address}:${server.address().port}`,
