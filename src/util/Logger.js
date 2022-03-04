@@ -20,6 +20,8 @@ class Logger {
             ),
             transports: [
                 new (transports.File)({filename: `logs/${filename}.log`}),
+                new transports.Console(),
+
             ],
         });
     }

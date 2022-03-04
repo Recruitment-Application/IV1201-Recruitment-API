@@ -179,6 +179,8 @@ class Controller {
         let requestedName = name;
         let requestedDateForm = dateFrom;
         let requestedDateTo = dateTo;
+        let requestedCompetenceId = parseInt(competenceId);
+        let requestedPage = parseInt(page);
         if (name === '') {
             requestedName = filterEmptyParamEnum.Name;
         }
@@ -188,7 +190,13 @@ class Controller {
         if (requestedDateTo === '') {
             requestedDateTo = filterEmptyParamEnum.Date;
         }
-        const applicationFilterDTO = new ApplicationFilterDTO(requestedName, competenceId, requestedDateForm, requestedDateTo, page);
+        if (competenceId === 0) {
+            requestedCompetenceId = filterEmptyParamEnum.CompetenceID;
+        }
+        if (page === 0) {
+            requestedPage = filterEmptyParamEnum.Page;
+        }
+        const applicationFilterDTO = new ApplicationFilterDTO(requestedName, requestedCompetenceId, requestedDateForm, requestedDateTo, requestedPage);
         return applicationFilterDTO;
     }
 }
