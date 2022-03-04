@@ -98,14 +98,14 @@ class Authorization {
      * in the express response object.
      * Note: sameSite and secure cookie is required since the Express app
      *       is hosted on different host than the React WebApp
-     * 
+     *
      * @param {UserDTO} userDTO An object containing the username and the role of the user.
      * @param {Response} res The express Response object.
      */
     static setAuthCookie(userDTO, res) {
         const httpOnlyCookie = {httpOnly: true};
         const cookieAge = {maxAge: 7 * 24 * 60 * 60 * 1000}; // 1 Week (maxAge is in seconds, but in cookie it's in ms.)
-        const sameSite = {sameSite: "None"}; 
+        const sameSite = {sameSite: 'None'};
         const secureCookie = {secure: true};
         const jwtToken = jwt.sign(
             {userDTO},

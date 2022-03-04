@@ -190,10 +190,10 @@ class Controller {
         if (requestedDateTo === '') {
             requestedDateTo = filterEmptyParamEnum.Date;
         }
-        if(competenceId === 0){
+        if (competenceId === 0) {
             requestedCompetenceId = filterEmptyParamEnum.CompetenceID;
         }
-        if(page === 0){
+        if (page === 0) {
             requestedPage = filterEmptyParamEnum.Page;
         }
         const applicationFilterDTO = new ApplicationFilterDTO(requestedName, requestedCompetenceId, requestedDateForm, requestedDateTo, requestedPage);
