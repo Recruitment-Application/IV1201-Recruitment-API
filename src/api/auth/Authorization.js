@@ -123,6 +123,27 @@ class Authorization {
         };
         res.cookie(this.AUTH_COOKIE_NAME, jwtToken, cookieOptions);
     }
+
+    /**
+     * Clears auth cookie.
+     * Note: sameSite and secure cookie is required since the Express app
+     *       is hosted on different host than the React WebApp
+     *
+     * @param {Response} res The express Response object.
+     */
+    static clearAuthCookie(res) {
+        const httpOnlyCookie = {httpOnly: true};
+        const sameSite = {sameSite: 'None'};
+        const secureCookie = {secure: true};
+
+        const cookieOptions = {
+            ...httpOnlyCookie,
+            ...sameSite,
+            ...secureCookie,
+        };
+
+        res.clearCookie(this.AUTH_COOKIE_NAME, cookieOptions);
+    }
 }
 
 module.exports = Authorization;

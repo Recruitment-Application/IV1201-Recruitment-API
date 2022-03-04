@@ -62,17 +62,17 @@ class UserApi extends RequestHandler {
                     try {
                         const errors = validationResult(req);
                         if (!errors.isEmpty()) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             this.sendHttpResponse(res, 400, errors);
                             return;
                         }
                         const signedinUserDTO = await this.controller.signinUser(req.body.username, req.body.password);
 
                         if (signedinUserDTO === null) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             throw new Error('Expected UserDTO object, received null.');
                         } else if (signedinUserDTO.errorCode !== userErrorCodes.OK) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             this.sendHttpResponse(res, 401, 'User signin failed.');
                             return;
                         } else {
@@ -121,7 +121,7 @@ class UserApi extends RequestHandler {
                     try {
                         const errors = validationResult(req);
                         if (!errors.isEmpty()) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             this.sendHttpResponse(res, 400, errors);
                             return;
                         }
@@ -129,17 +129,17 @@ class UserApi extends RequestHandler {
                             req.body.personalNumber, req.body.email, req.body.username, req.body.password);
 
                         if (signedupUserDTO === null) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             throw new Error('Expected UserDTO object, received null.');
                         } else if (signedupUserDTO.errorCode !== userErrorCodes.OK) {
                             if (signedupUserDTO.errorCode === userErrorCodes.ExistentEmail) {
-                                res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                                Authorization.clearAuthCookie();
                                 this.sendHttpResponse(res, 400, 'E-Mail already exists.');
                             } else if (signedupUserDTO.errorCode === userErrorCodes.ExistentUsername) {
-                                res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                                Authorization.clearAuthCookie();
                                 this.sendHttpResponse(res, 400, 'Username already exists.');
                             } else {
-                                res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                                Authorization.clearAuthCookie();
                                 this.sendHttpResponse(res, 400, 'User signup failed.');
                             }
                         } else {
@@ -166,7 +166,7 @@ class UserApi extends RequestHandler {
                     try {
                         const userDTO = await Authorization.verifyAuthCookie(req, res);
                         if (userDTO === null) {
-                            res.clearCookie(Authorization.AUTH_COOKIE_NAME);
+                            Authorization.clearAuthCookie();
                             this.sendHttpResponse(res, 401, 'Missing or invalid authorization cookie.');
                             return;
                         } else {
@@ -188,7 +188,6 @@ class UserApi extends RequestHandler {
                 '/signout',
                 async (req, res, next) => {
                     try {
-                        res.clearCookie(Authorization.AUTH_COOKIE_NAME);
                         this.sendHttpResponse(res, 200, 'Signed out successfully.');
                         return;
                     } catch (err) {
