@@ -47,6 +47,26 @@ This project only contains the REST API backend for the recruitment project, thu
 5. Start Insomnia.
 6. Import the file `insomnia-recruitment-api-requests.json` which contains sample requests to all the available api endpoints in this project.
 
+## Deployment on the cloud
+
+The following steps concern the deployment of the `IV1201-Recruitment-API` project to the Heroku cloud service.
+
+1. Create a free account on Heroku's cloud platform [Heroku](https://heroku.com/).
+2. Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) tool.
+3. Login to Heroku using the CLI by typing `heroku login` in a shell terminal.
+4. Download the latest version of the `IV1201-Recruitment-API` project locally.
+5. Start a new shell instance and change the directory to the local directory of the `IV1201-Recruitment-API` project.
+6. Initialize a new Git repository using the command `git init`.
+7. Create a new file called `Procfile` and write `web: node src/server.js` to it and save the file.
+8. Create and edit the .env file according to the .env.example and fill it with the needed information (VERY IMPORTANT).
+9. Edit the `.gitignore` to prevent the exclusion of the .env file (VERY IMPORTANT).
+10. Add all files to the local Git repository using `git add .`.
+11. Commit the changes to the repository using the command `git commit -m "Commit message goes here!"`.
+12. Create a new Heroku project using the command `heroku create --region eu` in the shell terminal.
+13. Push the changes to the newly created Heroku project repository using the command `git push heroku master`.
+14. The deployment process might take few minutes, and once the deployment is complete, a link to the deployed project will be presented in the shell terminal.
+15. The status and the logs of the project can be viewed on Heroku's online dashboard or using the command `heroku logs -n 200` in a shell terminal.
+
 ## Static Analysis
 
 In order to run static analysis check on the project, do the following:
