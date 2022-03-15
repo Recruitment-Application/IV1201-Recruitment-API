@@ -49,7 +49,7 @@ This project only contains the REST API backend for the recruitment project, thu
 
 ## Deployment to the cloud
 
-The following steps concern the deployment of the `IV1201-Recruitment-API` project to the Heroku cloud service.
+The following steps describe the deployment process of the `IV1201-Recruitment-API` project to Heroku's cloud service.
 
 1. Create a free account on Heroku's cloud platform [Heroku](https://heroku.com/).
 2. Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) tool.
