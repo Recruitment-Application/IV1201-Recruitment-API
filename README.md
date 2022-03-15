@@ -47,7 +47,7 @@ This project only contains the REST API backend for the recruitment project, thu
 5. Start Insomnia.
 6. Import the file `insomnia-recruitment-api-requests.json` which contains sample requests to all the available api endpoints in this project.
 
-## Deployment on the cloud
+## Deployment to the cloud
 
 The following steps concern the deployment of the `IV1201-Recruitment-API` project to the Heroku cloud service.
 
